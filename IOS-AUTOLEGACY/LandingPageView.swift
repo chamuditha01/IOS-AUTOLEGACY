@@ -13,49 +13,37 @@ struct LandingPageView: View {
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.3, green: 0.4, blue: 0.6),
-                    Color(red: 0.2, green: 0.3, blue: 0.5)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            AppTheme.Gradients.landing
+                .ignoresSafeArea()
             
             VStack(spacing: 40) {
                 Spacer()
                 
-                // Logo
                 VStack(spacing: 16) {
-                    // Car icon/logo
                     Image(systemName: "car.fill")
                         .font(.system(size: 60))
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppTheme.Colors.orange)
                     
                     Text("AutoLegacy")
-                        .font(.system(size: 36, weight: .light, design: .default))
-                        .foregroundColor(.white)
+                        .font(AppTheme.Typography.landingTitle(scale: 1.0))
+                        .foregroundColor(AppTheme.Colors.whiteSurface)
                     
                     Text("AUTOMOTIVE INTELLIGENCE")
-                        .font(.system(size: 12, weight: .regular, design: .default))
+                        .font(AppTheme.Typography.landingSubtitle(scale: 1.0))
                         .tracking(1.0)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(AppTheme.Colors.secondaryText.opacity(0.7))
                 }
                 
                 Spacer()
                 
-                // Loading indicator
                 if isLoading {
                     ProgressView()
-                        .tint(.white)
+                        .tint(AppTheme.Colors.whiteSurface)
                         .scaleEffect(1.5)
                 }
             }
             .padding()
             .onAppear {
-                // Simulate loading for 2 seconds
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     withAnimation(.easeInOut(duration: 0.5)) {
                         isLoading = false
