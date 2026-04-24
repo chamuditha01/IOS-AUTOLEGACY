@@ -30,12 +30,20 @@ struct ContentView: View {
                     }
                 }
             } else if showGetStartedPage {
-                GetStartedPageView {
-                    withAnimation(.easeInOut(duration: 0.4)) {
-                        showGetStartedPage = false
-                        authScreen = .login
+                GetStartedPageView(
+                    onGetStarted: {
+                        withAnimation(.easeInOut(duration: 0.4)) {
+                            showGetStartedPage = false
+                            authScreen = .login
+                        }
+                    },
+                    onLogin: {
+                        withAnimation(.easeInOut(duration: 0.4)) {
+                            showGetStartedPage = false
+                            authScreen = .login
+                        }
                     }
-                }
+                )
             } else {
                 switch authScreen {
                 case .login:
