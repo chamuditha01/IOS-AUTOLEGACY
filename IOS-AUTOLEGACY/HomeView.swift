@@ -28,11 +28,11 @@ struct HomeView: View {
     ]
 
     private let bottomTabs: [BottomTab] = [
-        .init(title: "Home", icon: "house.fill", isSelected: false),
+        .init(title: "Home", icon: "house.fill", isSelected: true),
         .init(title: "Vault", icon: "calendar.badge.clock", isSelected: false),
         .init(title: "Map", icon: "map.fill", isSelected: false),
         .init(title: "Profile", icon: "person.fill", isSelected: false),
-        .init(title: "Setting", icon: "gearshape.fill", isSelected: true)
+        .init(title: "Setting", icon: "gearshape.fill", isSelected: false)
     ]
 
     var body: some View {
@@ -69,12 +69,14 @@ struct HomeView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 120)
             }
+            
 
             VStack {
                 Spacer()
                 bottomNav
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    // Increase this number to push the bar further down
+                    .padding(.bottom, -20)
             }
         }
     }
@@ -149,7 +151,7 @@ struct HomeView: View {
         }
         .padding(18)
         .background(Color.black.opacity(0.88))
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
     }
 
     private func statusBadge(_ vehicle: Vehicle) -> some View {
@@ -217,23 +219,23 @@ struct HomeView: View {
     private var serviceReminder: some View {
         HStack(spacing: 10) {
             Image(systemName: "triangle.fill")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(Color(red: 0.65, green: 0.82, blue: 1.0))
 
             Text("Your Next service is on 70000km")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundColor(Color(red: 0.72, green: 0.83, blue: 1.0))
 
             Spacer()
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.vertical, 16)
         .background(Color.white.opacity(0.18))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .stroke(Color.white.opacity(0.28), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
     }
 
     private func servicePill(_ item: ServiceItem) -> some View {
@@ -290,17 +292,18 @@ struct HomeView: View {
     }
 
     private var bottomNav: some View {
+        
         HStack(spacing: 0) {
             ForEach(bottomTabs) { tab in
-                VStack(spacing: 5) {
+                VStack(spacing: 2) {
                     Image(systemName: tab.icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                     Text(tab.title)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
                 }
                 .foregroundColor(tab.isSelected ? AppTheme.Colors.phoneBlue : .black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 10)
                 .background(
                     ZStack {
                         if tab.isSelected {
@@ -314,15 +317,18 @@ struct HomeView: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-        .background(Color.white.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Color.white.opacity(1))
+        .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 50, style: .continuous)
+                .stroke(Color.white.opacity(1), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 8)
+        
     }
+    
 }
+
 
 private struct ServiceItem: Identifiable {
     let id = UUID()
