@@ -27,14 +27,6 @@ struct HomeView: View {
         ])
     ]
 
-    private let bottomTabs: [BottomTab] = [
-        .init(title: "Home", icon: "house.fill", isSelected: false),
-        .init(title: "Vault", icon: "calendar.badge.clock", isSelected: false),
-        .init(title: "Map", icon: "map.fill", isSelected: false),
-        .init(title: "Profile", icon: "person.fill", isSelected: false),
-        .init(title: "Setting", icon: "gearshape.fill", isSelected: true)
-    ]
-
     var body: some View {
         ZStack {
             AppTheme.Gradients.auth
@@ -68,13 +60,6 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 120)
-            }
-
-            VStack {
-                Spacer()
-                bottomNav
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
             }
         }
     }
@@ -288,40 +273,6 @@ struct HomeView: View {
         .background(Color.black.opacity(0.88))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
-
-    private var bottomNav: some View {
-        HStack(spacing: 0) {
-            ForEach(bottomTabs) { tab in
-                VStack(spacing: 5) {
-                    Image(systemName: tab.icon)
-                        .font(.system(size: 18, weight: .semibold))
-                    Text(tab.title)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(tab.isSelected ? AppTheme.Colors.phoneBlue : .black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    ZStack {
-                        if tab.isSelected {
-                            Capsule()
-                                .fill(Color.black.opacity(0.08))
-                                .padding(4)
-                        }
-                    }
-                )
-            }
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
-        .background(Color.white.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.35), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 8)
-    }
 }
 
 private struct ServiceItem: Identifiable {
@@ -346,13 +297,6 @@ private struct VehicleMetric: Identifiable {
     let title: String
     let value: String
     let icon: String
-}
-
-private struct BottomTab: Identifiable {
-    let id = UUID()
-    let title: String
-    let icon: String
-    let isSelected: Bool
 }
 
 #Preview {
