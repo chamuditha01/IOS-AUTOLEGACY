@@ -9,6 +9,7 @@ import SwiftUI
 
 struct GetStartedPageView: View {
     var onGetStarted: () -> Void
+    var onLogin: () -> Void // Added for navigation logic
 
     var body: some View {
         ZStack {
@@ -22,16 +23,15 @@ struct GetStartedPageView: View {
             LinearGradient(
                 gradient: Gradient(colors: [
                     .clear,
-                    .black.opacity(0.3)
+                    .black.opacity(0.4)
                 ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
-                    .frame(maxHeight: .infinity)
 
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -54,7 +54,8 @@ struct GetStartedPageView: View {
                 .padding(.bottom, 40)
             }
             .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
+                    // Primary Action
                     Button(action: {
                         onGetStarted()
                     }) {
@@ -66,18 +67,24 @@ struct GetStartedPageView: View {
                             .background(AppTheme.Layout.getStartedPrimaryButtonColor)
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.Layout.getStartedButtonCornerRadius, style: .continuous))
                     }
+
+                    // Secondary Action
+                    Button(action: {
+                        onLogin()
+                    }) {
+                        Text("Already have an account? Log in")
+                            .font(AppTheme.Typography.getStartedBody(scale: 0.9))
+                            .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.8))
+                    }
+                    .padding(.bottom, 10)
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 10)
                 .padding(.top, 12)
-                .background(.clear)
             }
         }
     }
 }
 
 #Preview {
-    GetStartedPageView {
-        print("Get Started")
-    }
+    GetStartedPageView(onGetStarted: {}, onLogin: {})
 }
