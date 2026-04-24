@@ -45,13 +45,13 @@ struct GetStartedPageView: View {
                     }
 
                     Text("Track all vehicle details in one secure place.")
-                        .font(AppTheme.Typography.getStartedBody(scale: 1.0))
+                        .font(AppTheme.Typography.getStartedBody(scale: 1.1))
                         .foregroundColor(AppTheme.Colors.dimText)
                         .lineLimit(3)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
-                .padding(.bottom, 40)
+                .padding(.bottom, 20)
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 16) {
@@ -73,10 +73,10 @@ struct GetStartedPageView: View {
                         onLogin()
                     }) {
                         Text("Already have an account? Log in")
-                            .font(AppTheme.Typography.getStartedBody(scale: 0.9))
+                            .font(AppTheme.Typography.getStartedBody(scale: 1.1))
                             .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.8))
                     }
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 50)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
