@@ -46,8 +46,14 @@ struct SettingsView: View {
                             }
                             
                             SettingsRowView(title: "Help & Support", subtitle: "Get assistance")
-                            SettingsRowView(title: "Terms & conditions", subtitle: "Legal information")
-                            SettingsRowView(title: "About", subtitle: "Version 1.0.0")
+                            
+                            NavigationLink(destination: TermsAndConditionsView().navigationBarBackButtonHidden(true)) {
+                                SettingsRowView(title: "Terms & conditions", subtitle: "Legal information")
+                            }
+                            
+                            NavigationLink(destination: AboutUsView().navigationBarBackButtonHidden(true)) {
+                                SettingsRowView(title: "About", subtitle: "Version 1.0.0")
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 120) // padding for custom nav bar layer
