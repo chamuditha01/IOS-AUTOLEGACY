@@ -1,6 +1,57 @@
 import SwiftUI
 
+struct VehicleDocument: Identifiable, Decodable {
+    let id: UUID
+    let filepath: String?
+    let vehicleid: UUID?
+    let doctype: String?
+    let expirydate: String?
+    
+    var daysLeft: Int? {
+        guard let expiryString = expirydate else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let expiry = formatter.date(from: expiryString) else { return nil }
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day], from: Date(), to: expiry)
+        return components.day
+    }
+    
+    var statusTitle: String {
+        if let days = daysLeft {
+            if days > 30 { return "ACTIVE" }
+            else if days > 0 { return "EXPIRING SOON" }
+            else { return "EXPIRED" }
+        }
+        return "UNKNOWN"
+    }
+    
+    var statusColor: Color {
+        if let days = daysLeft {
+            if days > 30 { return Color(red: 0.16, green: 0.65, blue: 0.27) }
+            else if days > 0 { return Color(red: 0.96, green: 0.53, blue: 0.53) }
+            else { return Color.red }
+        }
+        return Color.gray
+    }
+    
+    var formatExpiryDate: String {
+        guard let expiryString = expirydate else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let expiry = formatter.date(from: expiryString) else { return "Unknown" }
+        
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "yyyy-MM-dd"
+        return displayFormatter.string(from: expiry)
+    }
+}
+
 struct DigitalVaultView: View {
+    @State private var documents: [VehicleDocument] = []
+    @State private var isLoading = false
+    
     var body: some View {
         ZStack {
             Color(red: 0.23, green: 0.29, blue: 0.38)
@@ -37,120 +88,19 @@ struct DigitalVaultView: View {
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
-                        // Insurance Card
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Text("INSURANCE")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .tracking(1.5)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 10, weight: .bold))
-                                    Text("ACTIVE")
-                                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                                }
-                                .foregroundColor(Color(red: 0.16, green: 0.65, blue: 0.27))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color(red: 0.16, green: 0.65, blue: 0.27).opacity(0.2))
-                                .clipShape(Capsule())
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .padding(.top, 50)
+                        } else if documents.isEmpty {
+                            Text("No documents found")
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(.top, 50)
+                        } else {
+                            ForEach(documents) { doc in
+                                documentCard(for: doc)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-                            
-                            // Image placeholder
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(white: 0.2))
-                                    .frame(height: 180)
-                                
-                                Text("INSURANCE")
-                                    .font(.system(size: 24, weight: .black, design: .serif))
-                                    .italic()
-                                    .foregroundColor(.black.opacity(0.4))
-                                    .rotationEffect(.degrees(-15))
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-                            
-                            HStack(alignment: .bottom) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("STATUS")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(.white.opacity(0.6))
-                                    Text("Valid until 2025")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(Color(red: 0.32, green: 0.77, blue: 0.38))
-                                }
-                                
-                                Spacer()
-                                
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("342")
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(Color(red: 0.62, green: 0.73, blue: 0.96))
-                                    Text("DAYS LEFT")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(.white.opacity(0.6))
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 16)
-                            .padding(.bottom, 20)
                         }
-                        .background(Color(red: 0.14, green: 0.15, blue: 0.16))
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        
-                        // Registration Card
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Text("REGISTRATION")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .tracking(1.5)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.system(size: 10, weight: .bold))
-                                    Text("EXPIRING SOON")
-                                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                                }
-                                .foregroundColor(Color(red: 0.96, green: 0.53, blue: 0.53))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color(red: 0.96, green: 0.53, blue: 0.53).opacity(0.2))
-                                .clipShape(Capsule())
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-                            
-                            // Image placeholder
-                            ZStack(alignment: .bottom) {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(ColorInterpolation().gradient()) // Placeholder
-                                    .frame(height: 180)
-                                
-                                Circle()
-                                    .strokeBorder(Color.gray, lineWidth: 4)
-                                    .background(Circle().fill(Color(white: 0.25)))
-                                    .frame(width: 80, height: 80)
-                                    .offset(y: 40)
-                                    .mask(Rectangle().padding(.bottom, 40))
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-                            
-                            Spacer()
-                                .frame(height: 30) // To give space since image cuts off
-                        }
-                        .background(Color(red: 0.14, green: 0.15, blue: 0.16))
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -158,6 +108,113 @@ struct DigitalVaultView: View {
                 }
             }
         }
+        .task {
+            await fetchDocuments()
+        }
+    }
+    
+    private func fetchDocuments() async {
+        isLoading = true
+        do {
+            let fetchedDocuments: [VehicleDocument] = try await supabase
+                .from("document")
+                .select()
+                .execute()
+                .value
+            
+            DispatchQueue.main.async {
+                self.documents = fetchedDocuments
+                self.isLoading = false
+            }
+        } catch {
+            print("Failed to fetch documents: \(error)")
+            DispatchQueue.main.async {
+                self.isLoading = false
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func documentCard(for doc: VehicleDocument) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(doc.doctype?.uppercased() ?? "DOCUMENT")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
+                    .tracking(1.5)
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Image(systemName: doc.statusTitle == "ACTIVE" ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(doc.statusTitle)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(doc.statusColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(doc.statusColor.opacity(0.2))
+                .clipShape(Capsule())
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            
+            // Image placeholder
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(white: 0.2))
+                    .frame(height: 180)
+                
+                if let urlString = doc.filepath, let _ = URL(string: urlString) {
+                    AsyncImage(url: URL(string: urlString)) { image in
+                        image.resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 180)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } placeholder: {
+                        ProgressView()
+                    }
+                } else {
+                    Text(doc.doctype?.uppercased() ?? "DOCUMENT")
+                        .font(.system(size: 24, weight: .black, design: .serif))
+                        .italic()
+                        .foregroundColor(.black.opacity(0.4))
+                        .rotationEffect(.degrees(-15))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("STATUS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text(doc.statusTitle == "ACTIVE" ? "Valid until \(doc.formatExpiryDate)" : "Expires on \(doc.formatExpiryDate)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(doc.statusColor)
+                }
+                
+                Spacer()
+                
+                if let days = doc.daysLeft {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(max(days, 0))")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(Color(red: 0.62, green: 0.73, blue: 0.96))
+                        Text(days == 1 ? "DAY LEFT" : "DAYS LEFT")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 20)
+        }
+        .background(Color(red: 0.14, green: 0.15, blue: 0.16))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
