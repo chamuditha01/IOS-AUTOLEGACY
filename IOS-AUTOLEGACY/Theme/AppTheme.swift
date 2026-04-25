@@ -142,7 +142,8 @@ enum Typography {
     static func headerSubtitle(scale: CGFloat) -> Font { .system(size: 14 * scale, weight: .medium) }
     static func getStartedTitle(scale: CGFloat) -> Font { .system(size: 30 * scale, weight: .semibold, design: .rounded) }
     static func getStartedBody(scale: CGFloat) -> Font { .system(size: 16 * scale, weight: .regular, design: .rounded) }
-    static func getStartedButton(scale: CGFloat) -> Font { .system(size: 17, weight: .semibold, design: .rounded) }
+    static func getStartedBodyy(scale: CGFloat) -> Font { .system(size: 16 * scale, weight: .semibold, design: .rounded) }
+    static func getStartedButton(scale: CGFloat) -> Font { .system(size: 16 * scale, weight: .semibold, design: .rounded) }
 }
 
 enum Metrics {

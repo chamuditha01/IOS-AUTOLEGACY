@@ -60,14 +60,13 @@ struct GetStartedPageView: View {
                         onGetStarted()
                     }) {
                         Text("Get Started")
-                            .font(AppTheme.Typography.getStartedButton(scale: 1.0))
+                            .font(AppTheme.Typography.getStartedButton(scale: 1.2))
                             .foregroundColor(AppTheme.Colors.buttonText)
                             .frame(maxWidth: .infinity)
                             .frame(height: AppTheme.Layout.getStartedButtonHeight)
                             .background(AppTheme.Layout.getStartedPrimaryButtonColor)
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.Layout.getStartedButtonCornerRadius, style: .continuous))
                     }
-
                     // Secondary Action
                     Button(action: {
                         onLogin()

@@ -60,7 +60,7 @@ struct ContentView: View {
                     }
                 case .home:
                     HomeView()
-                    MainTabView()
+                MainTabView()
                 }
             }
         }
