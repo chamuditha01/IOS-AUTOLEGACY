@@ -14,6 +14,7 @@ struct ContentView: View {
 
     private enum AuthScreen {
         case login
+        case signup
         case otp(phoneNumber: String)
         case home
     }
@@ -34,7 +35,7 @@ struct ContentView: View {
                     onGetStarted: {
                         withAnimation(.easeInOut(duration: 0.4)) {
                             showGetStartedPage = false
-                            authScreen = .login
+                            authScreen = .signup
                         }
                     },
                     onLogin: {
@@ -52,6 +53,12 @@ struct ContentView: View {
                             authScreen = .otp(phoneNumber: phoneNumber)
                         }
                     }
+                case .signup:
+                    SignupView { phoneNumber in
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            authScreen = .otp(phoneNumber: phoneNumber)
+                        }
+                    }
                 case .otp(let phoneNumber):
                     OTPVerificationView(phoneNumber: phoneNumber) {
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -59,8 +66,7 @@ struct ContentView: View {
                         }
                     }
                 case .home:
-                    HomeView()
-                MainTabView()
+                    MainTabView()
                 }
             }
         }
