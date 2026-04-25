@@ -21,9 +21,7 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(AppTheme.Gradients.auth.ignoresSafeArea())
                 case .setting:
-                    Text("Setting") // Placeholder for settings
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppTheme.Gradients.auth.ignoresSafeArea())
+                    SettingsView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -32,9 +30,13 @@ struct MainTabView: View {
             VStack {
                 Spacer()
                 CustomNavBar(selectedTab: $selectedTab)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, -20)
             }
         }
     }
+}
+
+#Preview {
+    MainTabView()
 }

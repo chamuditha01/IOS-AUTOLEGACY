@@ -300,5 +300,5 @@ private struct VehicleMetric: Identifiable {
 }
 
 #Preview {
-    HomeView()
+    MainTabView()
 }
