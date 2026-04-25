@@ -21,9 +21,7 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(AppTheme.Gradients.auth.ignoresSafeArea())
                 case .setting:
-                    Text("Setting") // Placeholder for settings
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppTheme.Gradients.auth.ignoresSafeArea())
+                    SettingsView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
