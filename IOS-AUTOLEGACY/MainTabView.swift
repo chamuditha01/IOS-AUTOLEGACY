@@ -32,8 +32,8 @@ struct MainTabView: View {
             VStack {
                 Spacer()
                 CustomNavBar(selectedTab: $selectedTab)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, -20)
             }
         }
     }
