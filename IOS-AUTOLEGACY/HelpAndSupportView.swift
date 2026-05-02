@@ -45,7 +45,7 @@ struct HelpAndSupportView: View {
                             HStack {
                                 Image(systemName: "questionmark.circle.fill")
                                     .font(.system(size: 24))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppTheme.Layout.getStartedPrimaryButtonColor)
                                 
                                 Text("Need Help?")
                                     .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -61,7 +61,7 @@ struct HelpAndSupportView: View {
                             
                             VStack(spacing: 10) {
                                 ContactOptionView(icon: "envelope.fill", label: "Email", value: "support@autolegacy.com")
-                                ContactOptionView(icon: "phone.fill", label: "Phone", value: "+1 (555) 123-4567")
+                                ContactOptionView(icon: "phone.fill", label: "Phone", value: "+9491 567 8939")
                                 ContactOptionView(icon: "globe", label: "Website", value: "www.autolegacy.com")
                             }
                         }
@@ -79,7 +79,7 @@ struct HelpAndSupportView: View {
                             HStack {
                                 Image(systemName: "book.fill")
                                     .font(.system(size: 16))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppTheme.Layout.getStartedPrimaryButtonColor)
                                 
                                 Text("Frequently Asked Questions")
                                     .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -137,7 +137,7 @@ struct HelpAndSupportView: View {
                             HStack {
                                 Image(systemName: "wrench.and.screwdriver.fill")
                                     .font(.system(size: 16))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppTheme.Layout.getStartedPrimaryButtonColor)
                                 
                                 Text("Troubleshooting")
                                     .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -213,7 +213,7 @@ struct ContactOptionView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 14))
-                .foregroundColor(.orange)
+                .foregroundColor(AppTheme.Layout.getStartedPrimaryButtonColor)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -253,7 +253,7 @@ struct FAQItemView: View {
                     
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppTheme.Layout.getStartedPrimaryButtonColor)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                         .animation(.easeInOut(duration: 0.2), value: isExpanded)
                 }
@@ -285,7 +285,7 @@ struct TroubleshootingItemView: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.system(size: 14))
-                    .foregroundColor(.orange)
+                    .foregroundColor(AppTheme.Layout.getStartedPrimaryButtonColor)
                 
                 Text(issue)
                     .font(.system(size: 13, weight: .semibold))
