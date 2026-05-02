@@ -63,7 +63,7 @@ struct HomeView: View {
             }
         }
     }
-
+    @State private var showAlertView = false
     private var topBar: some View {
         HStack {
             Text("AutoLegacy")
@@ -72,71 +72,104 @@ struct HomeView: View {
 
             Spacer()
 
-            Image(systemName: "bell")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(AppTheme.Colors.whiteSurface)
-                .frame(width: 42, height: 42)
+            Button(action: {
+                        // 2. Set this to true when tapped
+                        showAlertView = true
+                    }) {
+                        Image(systemName: "bell")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.Colors.whiteSurface)
+                            .frame(width: 42, height: 42)
+                    }
+                    // 3. Attach the sheet modifier
+                    .sheet(isPresented: $showAlertView) {
+                        AlertsView()
+                    }
         }
         .padding(.top, 4)
     }
 
     private var vehicleCarousel: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 15) {
             TabView(selection: $selectedVehicleIndex) {
                 ForEach(Array(vehicles.enumerated()), id: \.offset) { index, vehicle in
                     vehicleCard(vehicle)
+                        .padding(.horizontal, 10) // Small gap between cards
                         .tag(index)
-                        .padding(.vertical, 2)
                 }
             }
-            .frame(height: 360)
+            .frame(height: 400) // Slightly taller to accommodate better spacing
             .tabViewStyle(.page(indexDisplayMode: .never))
 
-            HStack(spacing: 6) {
+            // Custom Pagination Dots
+            HStack(spacing: 8) {
                 ForEach(vehicles.indices, id: \.self) { index in
-                    Capsule()
-                        .fill(index == selectedVehicleIndex ? AppTheme.Colors.whiteSurface : AppTheme.Colors.whiteSurface.opacity(0.35))
-                        .frame(width: index == selectedVehicleIndex ? 18 : 7, height: 7)
-                        .animation(.easeInOut(duration: 0.2), value: selectedVehicleIndex)
+                    Circle()
+                        .fill(index == selectedVehicleIndex ? AppTheme.Colors.whiteSurface : AppTheme.Colors.whiteSurface.opacity(0.2))
+                        .frame(width: index == selectedVehicleIndex ? 10 : 6, height: 6)
+                        .scaleEffect(index == selectedVehicleIndex ? 1.2 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selectedVehicleIndex)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 2)
+            .padding(.vertical, 8)
         }
     }
 
     private func vehicleCard(_ vehicle: Vehicle) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 20) {
+            // Header Row
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(vehicle.name)
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    
                     Text(vehicle.model)
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
                 }
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(AppTheme.Colors.whiteSurface)
-
+                
                 Spacer()
-
+                
                 statusBadge(vehicle)
             }
 
+            // VIN Number with a "Tag" look
             Text(vehicle.vin)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.75))
+                .font(.system(.caption, design: .monospaced))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.white.opacity(0.1))
+                .foregroundColor(.white.opacity(0.5))
+                .cornerRadius(6)
 
+            // Hero Image Section
             carHeroImage(bodyColor: vehicle.bodyColor)
+                .frame(maxWidth: .infinity)
+                .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 10)
 
-            HStack(spacing: 10) {
+            // Bottom Metrics
+            HStack(spacing: 12) {
                 ForEach(vehicle.metrics) { metric in
                     metricTile(title: metric.title, value: metric.value, icon: metric.icon)
+                        .frame(maxWidth: .infinity) // Ensures tiles are equal width
                 }
             }
         }
-        .padding(18)
-        .background(Color.black.opacity(0.88))
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 32)
+                .fill(LinearGradient(
+                    colors: [Color(white: 0.15), Color(white: 0.05)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 32)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
     }
-
     private func statusBadge(_ vehicle: Vehicle) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.circle.fill")
