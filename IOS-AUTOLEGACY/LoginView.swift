@@ -8,6 +8,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var showError = false
     var onLogin: () -> Void
+    var onSignupTap: (() -> Void)? = nil
 
     var body: some View {
         GeometryReader { geometry in
@@ -144,6 +145,24 @@ struct LoginView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.buttonCornerRadius(scale: scale), style: .continuous))
                     .disabled(isLoading || mobile.isEmpty || password.isEmpty)
 
+                    Spacer(minLength: 20 * scale)
+
+                    // Sign up link
+                    HStack(spacing: 6) {
+                        Text("Don't have an account?")
+                            .font(.system(size: 14 * scale, weight: .regular))
+                            .foregroundColor(AppTheme.Colors.secondaryText)
+
+                        Button(action: {
+                            onSignupTap?()
+                        }) {
+                            Text("Sign up")
+                                .font(.system(size: 14 * scale, weight: .bold))
+                                .foregroundColor(AppTheme.Colors.phoneBlue)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+
                     Spacer(minLength: 28 * scale)
                 }
                 .padding(.horizontal, 32 * scale)
@@ -195,5 +214,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView { }
+    LoginView(onLogin: {}, onSignupTap: {})
 }

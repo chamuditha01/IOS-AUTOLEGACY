@@ -28,14 +28,14 @@ struct ContentView: View {
                     }
                 }
             } else if showLandingPage {
-                LandingPageView {
+                LandingPageView(onComplete: {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             showLandingPage = false
                             showGetStartedPage = true
                         }
                     }
-                }
+                })
             } else if showGetStartedPage {
                 GetStartedPageView(
                     onGetStarted: {
@@ -54,17 +54,31 @@ struct ContentView: View {
             } else {
                 switch authScreen {
                 case .login:
-                    LoginView {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            authScreen = .home
+                    LoginView(
+                        onLogin: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                authScreen = .home
+                            }
+                        },
+                        onSignupTap: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                authScreen = .signup
+                            }
                         }
-                    }
+                    )
                 case .signup:
-                    SignupView {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            authScreen = .home
+                    SignupView(
+                        onSignup: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                authScreen = .home
+                            }
+                        },
+                        onLoginTap: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                authScreen = .login
+                            }
                         }
-                    }
+                    )
                 case .otp(let phoneNumber):
                     OTPVerificationView(phoneNumber: phoneNumber) {
                         withAnimation(.easeInOut(duration: 0.3)) {
