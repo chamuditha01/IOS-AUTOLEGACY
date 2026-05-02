@@ -203,15 +203,18 @@ struct SignupView: View {
             } message: {
                 Text(errorMessage ?? "An error occurred during signup")
             }
-            .sheet(isPresented: $showFaceIDSetup, onDismiss: {
-                // Call onSignup after Face ID setup sheet is dismissed
-                onSignup()
-            }) {
-                FaceIDSetupView(
-                    biometricType: BiometricAuthentication.shared.getBiometricType(),
-                    isEnrolled: BiometricAuthentication.shared.isBiometricAvailable()
-                )
-            }
+            .sheet(
+                isPresented: $showFaceIDSetup,
+                onDismiss: {
+                    onSignup()
+                },
+                content: {
+                    FaceIDSetupView(
+                        biometricType: BiometricAuthentication.shared.getBiometricType(),
+                        isEnrolled: BiometricAuthentication.shared.isBiometricAvailable()
+                    )
+                }
+            )
         }
     }
 

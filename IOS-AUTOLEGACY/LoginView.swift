@@ -159,6 +159,11 @@ struct LoginView: View {
                     }
 
                     Spacer(minLength: 20 * scale)
+                    
+                    // Login Button
+                    Button {
+                        handleLogin()
+                    } label: {
                         if isLoading {
                             ProgressView()
                                 .tint(AppTheme.Colors.buttonText)
