@@ -154,15 +154,7 @@ func signUpWithMobileAndPassword(name: String, mobile: String, password: String)
             .execute()
             .value
         
-        // Also check 'phone' column as fallback
-        let existingPhoneUsers: [User] = try await supabase
-            .from("users")
-            .select("*")
-            .eq("phone", value: mobile)
-            .execute()
-            .value
-        
-        guard existingUsers.isEmpty && existingPhoneUsers.isEmpty else {
+        guard existingUsers.isEmpty else {
             throw NSError(domain: "Auth", code: -3, userInfo: [NSLocalizedDescriptionKey: "Mobile number already registered"])
         }
         
