@@ -36,3 +36,49 @@ func checkConnection() async {
         print("❌ Connection failed: \(error)")
     }
 }
+
+// MARK: - Authentication Functions
+
+func loginWithEmail(email: String, password: String) async throws -> String {
+    do {
+        let session = try await supabase.auth.signIn(email: email, password: password)
+        let userId = session.user.id.uuidString
+        print("✅ Login successful for user: \(userId)")
+        return userId
+    } catch {
+        print("❌ Login failed: \(error)")
+        throw error
+    }
+}
+
+func signUpWithEmail(email: String, password: String) async throws -> String {
+    do {
+        let session = try await supabase.auth.signUp(email: email, password: password)
+        let userId = session.user?.id.uuidString ?? ""
+        print("✅ Signup successful for user: \(userId)")
+        return userId
+    } catch {
+        print("❌ Signup failed: \(error)")
+        throw error
+    }
+}
+
+func logoutUser() async throws {
+    do {
+        try await supabase.auth.signOut()
+        print("✅ User logged out successfully")
+    } catch {
+        print("❌ Logout failed: \(error)")
+        throw error
+    }
+}
+
+func getCurrentUser() async throws -> String? {
+    do {
+        let session = try await supabase.auth.session
+        return session.user.id.uuidString
+    } catch {
+        print("❌ Failed to get current user: \(error)")
+        return nil
+    }
+}
