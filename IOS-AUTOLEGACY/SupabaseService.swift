@@ -74,12 +74,6 @@ func loginWithMobileAndPassword(mobile: String, password: String) async throws -
 
 func signUpWithMobileAndPassword(name: String, mobile: String, password: String) async throws -> (id: Int, name: String, mobile: String) {
     do {
-<<<<<<< HEAD
-        let session = try await supabase.auth.signUp(email: email, password: password)
-        let userId = session.user.id.uuidString ?? ""
-        print("✅ Signup successful for user: \(userId)")
-        return userId
-=======
         // Check if mobile already exists
         let existingUsers: [User] = try await supabase
             .from("users")
@@ -105,7 +99,6 @@ func signUpWithMobileAndPassword(name: String, mobile: String, password: String)
         
         print("✅ Signup successful for user: \(newUser.id)")
         return (id: newUser.id, name: newUser.name, mobile: newUser.mobile)
->>>>>>> dev
     } catch {
         print("❌ Signup failed: \(error)")
         throw error
@@ -113,21 +106,12 @@ func signUpWithMobileAndPassword(name: String, mobile: String, password: String)
 }
 
 func logoutUser() async throws {
-    do {
-        try await supabase.auth.signOut()
-        print("✅ User logged out successfully")
-    } catch {
-        print("❌ Logout failed: \(error)")
-        throw error
-    }
+    // Since we're using custom mobile+password auth (not Supabase auth),
+    // we just need to clear the session which is handled by SessionManager
+    print("✅ User logged out successfully")
 }
 
-func getCurrentUser() async throws -> String? {
-    do {
-        let session = try await supabase.auth.session
-        return session.user.id.uuidString
-    } catch {
-        print("❌ Failed to get current user: \(error)")
-        return nil
-    }
+func getCurrentUser() async throws -> Int? {
+    // Return nil - session is managed by SessionManager
+    return SessionManager.shared.getUserId()
 }
