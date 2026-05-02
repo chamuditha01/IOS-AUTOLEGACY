@@ -4,7 +4,7 @@ import Foundation
 class BiometricAuthentication {
     static let shared = BiometricAuthentication()
     
-    private let context = LAContext()
+    private init() {}
     
     enum BiometricType {
         case faceID
@@ -42,6 +42,7 @@ class BiometricAuthentication {
     }
     
     func getBiometricType() -> BiometricType {
+        let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             return .none
@@ -54,11 +55,21 @@ class BiometricAuthentication {
     }
     
     func isBiometricAvailable() -> Bool {
+        let context = LAContext()
         var error: NSError?
-        return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        let available = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        
+        if let error = error {
+            print("📱 Biometric availability check - Error: \(error.localizedDescription), Code: \(error.code)")
+        } else {
+            print("📱 Biometric available: \(available), Type: \(context.biometryType)")
+        }
+        
+        return available
     }
     
     func authenticate(reason: String = "Authenticate to unlock AutoLegacy") async throws {
+        let context = LAContext()
         var error: NSError?
         
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
