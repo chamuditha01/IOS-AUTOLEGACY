@@ -53,6 +53,15 @@ struct VehicleDocument: Identifiable, Decodable {
 struct DigitalVaultView: View {
     @State private var documents: [VehicleDocument] = []
     @State private var isLoading = false
+    @State private var showDocTypeSelection = false
+    @State private var selectedDocType: String?
+    @State private var showSubmissionView = false
+    
+    let documentTypes: [(name: String, image: String)] = [
+        ("insurance", "https://i.ibb.co/yjryBHR/Gemini-Generated-Image-b5g2ynb5g2ynb5g2.png"),
+        ("driving license", "https://i.ibb.co/rRT6JHBF/Gemini-Generated-Image-k2z2dek2z2dek2z2.png"),
+        ("vehicle license", "https://i.ibb.co/ntR8943/Gemini-Generated-Image-i4oj76i4oj76i4oj.png")
+    ]
     
     var body: some View {
         ZStack {
@@ -108,6 +117,51 @@ struct DigitalVaultView: View {
                     .padding(.top, 20)
                     .padding(.bottom, 120) // padding for custom nav bar
                 }
+            }
+            
+            // Floating Plus Button
+            VStack {
+                Spacer()
+                
+                HStack {
+                    Spacer()
+                    
+                    Button(action: { showDocTypeSelection = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 60, height: 60)
+                            .background(Color(red: 0.62, green: 0.73, blue: 0.96))
+                            .clipShape(Circle())
+                            .shadow(color: Color(red: 0.62, green: 0.73, blue: 0.96).opacity(0.5), radius: 8, x: 0, y: 4)
+                    }
+                    
+                    Spacer()
+                        .frame(width: 20)
+                }
+                .padding(.bottom, 100)
+            }
+        }
+        .sheet(isPresented: $showDocTypeSelection) {
+            DocumentTypeSelectionView(
+                isPresented: $showDocTypeSelection,
+                selectedDocType: $selectedDocType,
+                showSubmissionView: $showSubmissionView,
+                documentTypes: documentTypes
+            )
+        }
+        .sheet(isPresented: $showSubmissionView) {
+            if let docType = selectedDocType,
+               let docInfo = documentTypes.first(where: { $0.name == docType }) {
+                DocumentSubmissionView(
+                    documentType: docType,
+                    documentImage: docInfo.image,
+                    onSuccess: {
+                        Task {
+                            await fetchDocuments()
+                        }
+                    }
+                )
             }
         }
         .task {

@@ -366,6 +366,64 @@ func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws
     }
 }
 
+// MARK: - Document Management
+
+struct DocumentInsert: Encodable {
+    let vehicleid: String
+    let doctype: String
+    let expirydate: String
+    let filepath: String
+    
+    enum CodingKeys: String, CodingKey {
+        case vehicleid
+        case doctype
+        case expirydate
+        case filepath
+    }
+}
+
+struct DocumentData: Decodable {
+    let id: String?
+    let vehicleid: String
+    let doctype: String
+    let expirydate: String
+    let filepath: String
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case vehicleid
+        case doctype
+        case expirydate
+        case filepath
+    }
+}
+
+func saveDocument(vehicleId: String, doctype: String, expirydate: String, filepath: String) async throws {
+    do {
+        print("📱 Saving document - type: \(doctype), vehicleId: \(vehicleId), filepath: \(filepath)")
+        
+        let insertData = DocumentInsert(vehicleid: vehicleId, doctype: doctype, expirydate: expirydate, filepath: filepath)
+        
+        let response = try await supabase
+            .from("document")
+            .insert([insertData])
+            .select()
+            .single()
+            .execute()
+        
+        print("📥 Document response: \(String(data: response.data, encoding: .utf8) ?? "N/A")")
+        
+        let decoder = JSONDecoder()
+        let document = try decoder.decode(DocumentData.self, from: response.data)
+        
+        print("✅ Document saved successfully: \(document.id ?? "N/A")")
+    } catch {
+        print("❌ Failed to save document: \(error.localizedDescription)")
+        print("❌ Full error: \(error)")
+        throw error
+    }
+}
+
 func fetchVehiclesForUser(userId: Int) async throws -> [(vehicle: VehicleData, stats: VehicleStatData?)] {
     do {
         print("📱 Fetching vehicles for user ID: \(userId)...")
