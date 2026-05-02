@@ -297,7 +297,7 @@ struct VehicleStatData: Decodable {
 }
 
 struct FuelExpenseData: Decodable {
-    let id: Int?             // Change String? to Int?
+    let id: Int
     let amount: Float
     let vehicleid: String
     let ownerid: Int
@@ -314,17 +314,29 @@ struct FuelExpenseData: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        id = try container.decodeIfPresent(Int.self, forKey: .id)
-        amount = try container.decode(Float.self, forKey: .amount)
+        // Decode id as Int (might come as numeric from Supabase)
+        if let idInt = try container.decodeIfPresent(Int.self, forKey: .id) {
+            id = idInt
+        } else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(codingPath: [CodingKeys.id], debugDescription: "ID is missing")
+            )
+        }
+        
+        // Decode amount (handle both Int and Float)
+        if let amountFloat = try container.decodeIfPresent(Float.self, forKey: .amount) {
+            amount = amountFloat
+        } else if let amountInt = try container.decodeIfPresent(Int.self, forKey: .amount) {
+            amount = Float(amountInt)
+        } else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(codingPath: [CodingKeys.amount], debugDescription: "Amount is missing or invalid")
+            )
+        }
+        
         vehicleid = try container.decode(String.self, forKey: .vehicleid)
         ownerid = try container.decode(Int.self, forKey: .ownerid)
-        
-        // created_at might come as string or other format, handle gracefully
-        if let createdStr = try container.decodeIfPresent(String.self, forKey: .created_at) {
-            created_at = createdStr
-        } else {
-            created_at = nil
-        }
+        created_at = try container.decodeIfPresent(String.self, forKey: .created_at)
     }
 }
 
