@@ -236,7 +236,8 @@ struct SignupView: View {
                 print("✅ Signup successful: \(result)")
                 DispatchQueue.main.async {
                     print("📱 Saving session...")
-                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
+                    // Save with password for Face ID auto-login
+                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile, password: self.password)
                     
                     // Show Face ID setup if biometrics available
                     if BiometricAuthentication.shared.isBiometricAvailable() {

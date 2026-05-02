@@ -218,7 +218,8 @@ struct LoginView: View {
             do {
                 let result = try await loginWithMobileAndPassword(mobile: mobile, password: password)
                 DispatchQueue.main.async {
-                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
+                    // Save session with password for Face ID auto-login
+                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile, password: self.password)
                     onLogin()
                 }
             } catch let error as NSError {
@@ -255,24 +256,23 @@ struct LoginView: View {
             do {
                 try await BiometricAuthentication.shared.authenticate(reason: "Unlock AutoLegacy with your biometrics")
                 
-                // Biometric auth successful - get stored mobile number
-                if let storedMobile = SessionManager.shared.getUserMobile() {
-                    DispatchQueue.main.async {
-                        // Auto-populate mobile field
-                        self.mobile = storedMobile
-                        isFaceUnlockLoading = false
-                        
-                        // Show a brief success message then focus on password
-                        errorMessage = "✅ Face recognized! Please enter your password."
-                        showError = true
-                    }
-                } else {
-                    // No stored mobile, ask user to login normally
+                // Biometric auth successful - get stored credentials
+                guard let storedMobile = SessionManager.shared.getUserMobile(),
+                      let storedPassword = SessionManager.shared.getUserPassword() else {
                     DispatchQueue.main.async {
                         isFaceUnlockLoading = false
-                        errorMessage = "Face verified! Please log in with your credentials."
+                        errorMessage = "Stored credentials not found. Please log in manually."
                         showError = true
                     }
+                    return
+                }
+                
+                // Auto-login with stored credentials
+                let result = try await loginWithMobileAndPassword(mobile: storedMobile, password: storedPassword)
+                DispatchQueue.main.async {
+                    isFaceUnlockLoading = false
+                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile, password: storedPassword)
+                    onLogin()
                 }
             } catch let error as BiometricAuthentication.AuthenticationError {
                 DispatchQueue.main.async {
@@ -280,10 +280,24 @@ struct LoginView: View {
                     errorMessage = error.errorDescription ?? "Biometric authentication failed"
                     showError = true
                 }
+            } catch let error as NSError {
+                DispatchQueue.main.async {
+                    isFaceUnlockLoading = false
+                    // Handle login errors
+                    switch error.code {
+                    case -1:
+                        errorMessage = "Mobile number not found."
+                    case -2:
+                        errorMessage = "Password is incorrect. Please log in manually."
+                    default:
+                        errorMessage = "Auto-login failed. Please log in manually."
+                    }
+                    showError = true
+                }
             } catch {
                 DispatchQueue.main.async {
                     isFaceUnlockLoading = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = "Login failed. Please try again."
                     showError = true
                 }
             }

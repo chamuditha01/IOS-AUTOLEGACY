@@ -14,16 +14,23 @@ class SessionManager {
     private let userNameKey = "autolegacy_user_name"
     private let userMobileKey = "autolegacy_user_mobile"
     private let isLoggedInKey = "autolegacy_is_logged_in"
+    private let userPasswordKey = "autolegacy_user_password"
     
     private init() {}
     
     // MARK: - Save Session Data
     
-    func saveUserSession(userId: Int, name: String, mobile: String) {
+    func saveUserSession(userId: Int, name: String, mobile: String, password: String? = nil) {
         UserDefaults.standard.set(userId, forKey: userIdKey)
         UserDefaults.standard.set(name, forKey: userNameKey)
         UserDefaults.standard.set(mobile, forKey: userMobileKey)
         UserDefaults.standard.set(true, forKey: isLoggedInKey)
+        
+        // Store password if provided (for Face ID auto-login)
+        if let password = password {
+            savePassword(password)
+        }
+        
         print("✅ Session saved for user: \(userId)")
     }
     
@@ -42,6 +49,14 @@ class SessionManager {
         return UserDefaults.standard.string(forKey: userMobileKey)
     }
     
+    func getUserPassword() -> String? {
+        return UserDefaults.standard.string(forKey: userPasswordKey)
+    }
+    
+    private func savePassword(_ password: String) {
+        UserDefaults.standard.set(password, forKey: userPasswordKey)
+    }
+    
     func isUserLoggedIn() -> Bool {
         return UserDefaults.standard.bool(forKey: isLoggedInKey)
     }
@@ -53,6 +68,7 @@ class SessionManager {
         UserDefaults.standard.removeObject(forKey: userNameKey)
         UserDefaults.standard.removeObject(forKey: userMobileKey)
         UserDefaults.standard.removeObject(forKey: isLoggedInKey)
+        UserDefaults.standard.removeObject(forKey: userPasswordKey)
         print("✅ Session cleared")
     }
     
