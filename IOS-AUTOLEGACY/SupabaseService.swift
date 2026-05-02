@@ -217,7 +217,7 @@ struct VehicleData: Decodable {
     let make: String
     let model: String
     let currentmileage: Float?
-    let owner_id: String?
+    let ownerIdValue: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -225,6 +225,32 @@ struct VehicleData: Decodable {
         case model
         case currentmileage
         case owner_id
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        make = try container.decode(String.self, forKey: .make)
+        model = try container.decode(String.self, forKey: .model)
+        currentmileage = try? container.decode(Float.self, forKey: .currentmileage)
+        
+        // Handle owner_id - could be string or number
+        var ownerIdStr: String? = nil
+        
+        // Try to decode as String first
+        if let ownerId = try? container.decode(String.self, forKey: .owner_id) {
+            ownerIdStr = ownerId
+        }
+        // If that fails, try as Int and convert to String
+        else if let ownerId = try? container.decode(Int.self, forKey: .owner_id) {
+            ownerIdStr = String(ownerId)
+        }
+        
+        self.ownerIdValue = ownerIdStr
+    }
+    
+    var getOwnerId: String? {
+        return ownerIdValue
     }
 }
 
@@ -248,11 +274,11 @@ func fetchVehiclesForUser(userId: Int) async throws -> [(vehicle: VehicleData, s
     do {
         print("📱 Fetching vehicles for user ID: \(userId)...")
         
-        // Fetch all vehicles for the user
+        // Fetch all vehicles for the user - owner_id is numeric in database
         let vehicles: [VehicleData] = try await supabase
             .from("vehicle")
             .select("*")
-            .eq("owner_id", value: String(userId))
+            .eq("owner_id", value: userId)
             .execute()
             .value
         
