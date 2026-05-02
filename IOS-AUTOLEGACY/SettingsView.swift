@@ -45,7 +45,9 @@ struct SettingsView: View {
                                 SettingsRowView(title: "Accessibility", subtitle: "Customize your experience")
                             }
                             
-                            SettingsRowView(title: "Help & Support", subtitle: "Get assistance")
+                            NavigationLink(destination: HelpAndSupportView().navigationBarBackButtonHidden(true)) {
+                                SettingsRowView(title: "Help & Support", subtitle: "Get assistance")
+                            }
                             
                             NavigationLink(destination: TermsAndConditionsView().navigationBarBackButtonHidden(true)) {
                                 SettingsRowView(title: "Terms & conditions", subtitle: "Legal information")
