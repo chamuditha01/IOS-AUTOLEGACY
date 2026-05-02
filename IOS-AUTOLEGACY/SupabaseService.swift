@@ -370,7 +370,7 @@ func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws
         let decoder = JSONDecoder()
         let expense = try decoder.decode(FuelExpenseData.self, from: response.data)
         
-        print("✅ Fuel expense saved successfully: \(expense.id != nil ? "\(expense.id!)" : "N/A")")
+        print("✅ Fuel expense saved successfully: \(expense.id != nil ? "\(expense.id)" : "N/A")")
     } catch {
         print("❌ Failed to save fuel expense: \(error.localizedDescription)")
         print("❌ Full error: \(error)")
