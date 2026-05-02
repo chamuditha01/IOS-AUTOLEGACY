@@ -81,8 +81,16 @@ class SessionManager {
         UserDefaults.standard.removeObject(forKey: userNameKey)
         UserDefaults.standard.removeObject(forKey: userMobileKey)
         UserDefaults.standard.removeObject(forKey: isLoggedInKey)
+        // NOTE: Password is NOT cleared here - kept for Face ID auto-login
+        print("✅ Session cleared (password retained for Face ID)")
+    }
+    
+    // MARK: - Clear Stored Credentials (for when disabling Face ID or manually clearing)
+    
+    func clearStoredCredentials() {
         UserDefaults.standard.removeObject(forKey: userPasswordKey)
-        print("✅ Session cleared")
+        UserDefaults.standard.removeObject(forKey: userMobileKey)
+        print("✅ Stored credentials cleared")
     }
     
     // MARK: - Logout
