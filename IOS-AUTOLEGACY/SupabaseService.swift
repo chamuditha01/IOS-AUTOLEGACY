@@ -42,8 +42,7 @@ func checkConnection() async {
 struct User: Decodable {
     let id: Int
     let name: String?
-    let mobile: String?
-    let phone: String?
+    let mobileValue: String?
     let password: String?
     
     enum CodingKeys: String, CodingKey {
@@ -58,14 +57,34 @@ struct User: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         name = try? container.decode(String.self, forKey: .name)
-        mobile = try? container.decode(String.self, forKey: .mobile)
-        phone = try? container.decode(String.self, forKey: .phone)
         password = try? container.decode(String.self, forKey: .password)
+        
+        // Handle mobile - could be string or number
+        var mobileStr: String? = nil
+        
+        // Try to decode as String first
+        if let mobile = try? container.decode(String.self, forKey: .mobile) {
+            mobileStr = mobile
+        }
+        // If that fails, try as Int and convert to String
+        else if let mobile = try? container.decode(Int.self, forKey: .mobile) {
+            mobileStr = String(mobile)
+        }
+        // Try phone column as String
+        else if let phone = try? container.decode(String.self, forKey: .phone) {
+            mobileStr = phone
+        }
+        // Try phone column as Int and convert to String
+        else if let phone = try? container.decode(Int.self, forKey: .phone) {
+            mobileStr = String(phone)
+        }
+        
+        self.mobileValue = mobileStr
     }
     
-    // Get mobile - check both mobile and phone columns
+    // Get mobile
     var getMobile: String? {
-        return mobile ?? phone
+        return mobileValue
     }
     
     // Get name - default to empty if not found
@@ -147,7 +166,7 @@ func signUpWithMobileAndPassword(name: String, mobile: String, password: String)
             throw NSError(domain: "Auth", code: -3, userInfo: [NSLocalizedDescriptionKey: "Mobile number already registered"])
         }
         
-        // Insert new user - try with 'mobile' column first
+        // Insert new user
         let newUser: User = try await supabase
             .from("users")
             .insert([
