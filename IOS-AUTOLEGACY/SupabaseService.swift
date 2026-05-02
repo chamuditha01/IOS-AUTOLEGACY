@@ -297,7 +297,7 @@ struct VehicleStatData: Decodable {
 }
 
 struct FuelExpenseData: Decodable {
-    let id: String?
+    let id: Int?             // Change String? to Int?
     let amount: Float
     let vehicleid: String
     let ownerid: Int
@@ -314,7 +314,7 @@ struct FuelExpenseData: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        id = try container.decodeIfPresent(String.self, forKey: .id)
+        id = try container.decodeIfPresent(Int.self, forKey: .id)
         amount = try container.decode(Float.self, forKey: .amount)
         vehicleid = try container.decode(String.self, forKey: .vehicleid)
         ownerid = try container.decode(Int.self, forKey: .ownerid)
@@ -358,7 +358,7 @@ func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws
         let decoder = JSONDecoder()
         let expense = try decoder.decode(FuelExpenseData.self, from: response.data)
         
-        print("✅ Fuel expense saved successfully: \(expense.id ?? "N/A")")
+        print("✅ Fuel expense saved successfully: \(expense.id != nil ? "\(expense.id!)" : "N/A")")
     } catch {
         print("❌ Failed to save fuel expense: \(error.localizedDescription)")
         print("❌ Full error: \(error)")
