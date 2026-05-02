@@ -145,5 +145,4 @@ struct SettingsRowView: View {
 #Preview {
     SettingsView()
 }
-    SettingsView()
-}
+    
