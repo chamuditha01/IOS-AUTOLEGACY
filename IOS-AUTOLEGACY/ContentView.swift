@@ -72,7 +72,11 @@ struct ContentView: View {
                         }
                     }
                 case .home:
-                    MainTabView()
+                    MainTabView(onLogout: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            authScreen = .login
+                        }
+                    })
                 }
             }
         }

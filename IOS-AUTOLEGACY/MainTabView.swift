@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .home
+    var onLogout: (() -> Void)? = nil
     
     var body: some View {
         ZStack {
@@ -21,7 +22,7 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(AppTheme.Gradients.auth.ignoresSafeArea())
                 case .setting:
-                    SettingsView()
+                    SettingsView(onLogout: onLogout)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

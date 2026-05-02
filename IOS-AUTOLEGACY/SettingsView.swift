@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
+    @State private var showLogoutAlert = false
+    var onLogout: (() -> Void)? = nil
     
     var body: some View {
         NavigationStack {
@@ -56,13 +58,56 @@ struct SettingsView: View {
                             NavigationLink(destination: AboutUsView().navigationBarBackButtonHidden(true)) {
                                 SettingsRowView(title: "About", subtitle: "Version 1.0.0")
                             }
+                            
+                            Spacer(minLength: 20)
+                            
+                            // Logout Button
+                            Button(action: {
+                                showLogoutAlert = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Logout")
+                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .foregroundColor(.red.opacity(0.7))
+                                        .font(.system(size: 14, weight: .semibold))
+                                }
+                                .padding(20)
+                                .background(Color.red.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 120) // padding for custom nav bar layer
                     }
                 }
             }
+            .alert("Logout", isPresented: $showLogoutAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Logout", role: .destructive) {
+                    handleLogout()
+                }
+            } message: {
+                Text("Are you sure you want to logout? You'll need to login again to access your account.")
+            }
         }
+    }
+    
+    private func handleLogout() {
+        SessionManager.shared.clearSession()
+        onLogout?()
     }
 }
 
@@ -98,5 +143,7 @@ struct SettingsRowView: View {
 }
 
 #Preview {
+    SettingsView()
+}
     SettingsView()
 }
