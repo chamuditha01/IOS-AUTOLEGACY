@@ -146,19 +146,37 @@ func loginWithMobileAndPassword(mobile: String, password: String) async throws -
 
 func signUpWithMobileAndPassword(name: String, mobile: String, password: String) async throws -> (id: Int, name: String, mobile: String) {
     do {
-        // Check if mobile already exists in 'mobile' column
-        let existingUsers: [User] = try await supabase
+        print("📱 Checking if mobile \(mobile) already exists...")
+        
+        // Try querying with mobile as string first
+        var existingUsers: [User] = try await supabase
             .from("users")
             .select("*")
             .eq("mobile", value: mobile)
             .execute()
             .value
         
+        print("📱 Found \(existingUsers.count) users with mobile as string")
+        
+        // If not found as string, try converting to number since mobile column is numeric
+        if existingUsers.isEmpty, let mobileNumber = Int(mobile) {
+            print("📱 Trying to query with mobile as number: \(mobileNumber)")
+            existingUsers = try await supabase
+                .from("users")
+                .select("*")
+                .eq("mobile", value: mobileNumber)
+                .execute()
+                .value
+            print("📱 Found \(existingUsers.count) users with mobile as number")
+        }
+        
         guard existingUsers.isEmpty else {
+            print("❌ Mobile number already registered")
             throw NSError(domain: "Auth", code: -3, userInfo: [NSLocalizedDescriptionKey: "Mobile number already registered"])
         }
         
         // Insert new user
+        print("📱 Inserting new user with mobile: \(mobile)")
         let newUser: User = try await supabase
             .from("users")
             .insert([

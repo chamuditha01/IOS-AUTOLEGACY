@@ -237,7 +237,12 @@ struct SignupView: View {
                     case -4:
                         errorMessage = "Failed to save mobile number. Please try again."
                     default:
-                        errorMessage = error.localizedDescription.isEmpty ? "An error occurred during signup. Please try again." : error.localizedDescription
+                        // Check if it's a duplicate key error from database
+                        if error.localizedDescription.contains("duplicate") || error.localizedDescription.contains("Conflict") {
+                            errorMessage = "This mobile number is already registered. Please use a different number."
+                        } else {
+                            errorMessage = error.localizedDescription.isEmpty ? "An error occurred during signup. Please try again." : error.localizedDescription
+                        }
                     }
                     showError = true
                     isLoading = false
