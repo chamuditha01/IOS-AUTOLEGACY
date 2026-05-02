@@ -255,7 +255,7 @@ struct VehicleData: Decodable {
 }
 
 struct VehicleStatData: Decodable {
-    let id: String
+    let idValue: String?
     let Oil: String?
     let Tires: String?
     let Battery: String?
@@ -267,6 +267,32 @@ struct VehicleStatData: Decodable {
         case Tires
         case Battery
         case vehicleid
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        Oil = try? container.decode(String.self, forKey: .Oil)
+        Tires = try? container.decode(String.self, forKey: .Tires)
+        Battery = try? container.decode(String.self, forKey: .Battery)
+        vehicleid = try container.decode(String.self, forKey: .vehicleid)
+        
+        // Handle id - could be string or number (int8)
+        var idStr: String? = nil
+        
+        // Try to decode as String first
+        if let id = try? container.decode(String.self, forKey: .id) {
+            idStr = id
+        }
+        // If that fails, try as Int and convert to String
+        else if let id = try? container.decode(Int.self, forKey: .id) {
+            idStr = String(id)
+        }
+        
+        self.idValue = idStr
+    }
+    
+    var getId: String? {
+        return idValue
     }
 }
 
