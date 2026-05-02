@@ -80,11 +80,14 @@ struct ContentView: View {
                         }
                     )
                 case .otp(let phoneNumber):
-                    OTPVerificationView(phoneNumber: phoneNumber) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            authScreen = .home
+                    OTPVerificationView(
+                        phoneNumber: phoneNumber,
+                        onLogin: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                authScreen = .home
+                            }
                         }
-                    }
+                    )
                 case .home:
                     MainTabView(onLogout: {
                         withAnimation(.easeInOut(duration: 0.3)) {

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct OTPVerificationView: View {
     let phoneNumber: String
-    var onLogin: () -> Void = {}
+    var onLogin: (() -> Void)?
 
     @State private var otp = ""
     @FocusState private var isOtpFieldFocused: Bool
@@ -33,7 +33,7 @@ struct OTPVerificationView: View {
 
                     Spacer(minLength: 6 * scale)
 
-                    Button(action: onLogin) {
+                    Button(action: { onLogin?() }) {
                         Text("Login")
                             .font(AppTheme.Typography.authPrimaryButton(scale: scale))
                             .foregroundColor(AppTheme.Colors.buttonText)

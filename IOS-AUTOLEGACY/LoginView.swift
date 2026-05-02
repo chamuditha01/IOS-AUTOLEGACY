@@ -183,26 +183,32 @@ struct LoginView: View {
         Task {
             do {
                 let result = try await loginWithMobileAndPassword(mobile: mobile, password: password)
-                SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
-                onLogin()
-            } catch let error as NSError {
-                // Handle specific error codes
-                switch error.code {
-                case -1:
-                    errorMessage = "Mobile number not found. Please check and try again."
-                case -2:
-                    errorMessage = "Invalid password. Please try again."
-                case -4:
-                    errorMessage = "Mobile number missing in database. Contact support."
-                default:
-                    errorMessage = error.localizedDescription.isEmpty ? "An error occurred during login. Please try again." : error.localizedDescription
+                DispatchQueue.main.async {
+                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
+                    onLogin()
                 }
-                showError = true
-                isLoading = false
+            } catch let error as NSError {
+                DispatchQueue.main.async {
+                    // Handle specific error codes
+                    switch error.code {
+                    case -1:
+                        errorMessage = "Mobile number not found. Please check and try again."
+                    case -2:
+                        errorMessage = "Invalid password. Please try again."
+                    case -4:
+                        errorMessage = "Mobile number missing in database. Contact support."
+                    default:
+                        errorMessage = error.localizedDescription.isEmpty ? "An error occurred during login. Please try again." : error.localizedDescription
+                    }
+                    showError = true
+                    isLoading = false
+                }
             } catch {
-                errorMessage = "Connection error: \(error.localizedDescription)"
-                showError = true
-                isLoading = false
+                DispatchQueue.main.async {
+                    errorMessage = "Connection error: \(error.localizedDescription)"
+                    showError = true
+                    isLoading = false
+                }
             }
         }
     }

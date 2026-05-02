@@ -216,24 +216,30 @@ struct SignupView: View {
         Task {
             do {
                 let result = try await signUpWithMobileAndPassword(name: name, mobile: mobile, password: password)
-                SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
-                onSignup()
-            } catch let error as NSError {
-                // Handle specific error codes
-                switch error.code {
-                case -3:
-                    errorMessage = "This mobile number is already registered. Please use a different number."
-                case -4:
-                    errorMessage = "Failed to save mobile number. Please try again."
-                default:
-                    errorMessage = error.localizedDescription.isEmpty ? "An error occurred during signup. Please try again." : error.localizedDescription
+                DispatchQueue.main.async {
+                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
+                    onSignup()
                 }
-                showError = true
-                isLoading = false
+            } catch let error as NSError {
+                DispatchQueue.main.async {
+                    // Handle specific error codes
+                    switch error.code {
+                    case -3:
+                        errorMessage = "This mobile number is already registered. Please use a different number."
+                    case -4:
+                        errorMessage = "Failed to save mobile number. Please try again."
+                    default:
+                        errorMessage = error.localizedDescription.isEmpty ? "An error occurred during signup. Please try again." : error.localizedDescription
+                    }
+                    showError = true
+                    isLoading = false
+                }
             } catch {
-                errorMessage = "Connection error: \(error.localizedDescription)"
-                showError = true
-                isLoading = false
+                DispatchQueue.main.async {
+                    errorMessage = "Connection error: \(error.localizedDescription)"
+                    showError = true
+                    isLoading = false
+                }
             }
         }
     }
