@@ -8,6 +8,7 @@ struct AccessibilityView: View {
     @State private var voiceGuidance: Bool = false
     @State private var largerTouchTargets: Bool = false
     @State private var faceUnlock: Bool = false
+    @State private var showFaceIDSetup = false
     
     var body: some View {
         ZStack {
@@ -82,7 +83,54 @@ struct AccessibilityView: View {
                         AccessibilityToggleRow(title: "High Contrast", subtitle: "Increase Visibility", isOn: $highContrast)
                         AccessibilityToggleRow(title: "Voice Guidance", subtitle: "Enable audio instructions", isOn: $voiceGuidance)
                         AccessibilityToggleRow(title: "Larger Touch Targets", subtitle: "Easier button", isOn: $largerTouchTargets)
-                        AccessibilityToggleRow(title: "Face Unlock", subtitle: "Unlock app using face", isOn: $faceUnlock)
+                        
+                        VStack {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: BiometricAuthentication.shared.getBiometricType() == .faceID ? "face.smiling" : "touchid")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(Color(red: 0.62, green: 0.73, blue: 0.96))
+                                        
+                                        Text("Face Unlock")
+                                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                                            .foregroundColor(.white)
+                                    }
+                                    Text("Unlock app using \(BiometricAuthentication.shared.getBiometricType() == .faceID ? "face" : "touch")")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                                Spacer()
+                                
+                                if BiometricAuthentication.shared.isBiometricAvailable() {
+                                    Toggle("", isOn: $faceUnlock)
+                                        .labelsHidden()
+                                        .onChange(of: faceUnlock) { newValue in
+                                            SessionManager.shared.enableFaceUnlock(newValue)
+                                            if newValue {
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                                    showFaceIDSetup = true
+                                                }
+                                            }
+                                        }
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "lock.slash")
+                                            .font(.system(size: 14, weight: .semibold))
+                                        Text("Not Available")
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundColor(.white.opacity(0.5))
+                                }
+                            }
+                            .padding(20)
+                            .background(Color.white.opacity(0.05))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        }
                         
                         // Language Selector
                         HStack {
@@ -117,6 +165,15 @@ struct AccessibilityView: View {
                     .padding(.bottom, 120) // padding for custom nav bar
                 }
             }
+        }
+        .onAppear {
+            faceUnlock = SessionManager.shared.isFaceUnlockEnabled()
+        }
+        .sheet(isPresented: $showFaceIDSetup) {
+            FaceIDSetupView(
+                biometricType: BiometricAuthentication.shared.getBiometricType(),
+                isEnrolled: BiometricAuthentication.shared.isBiometricAvailable()
+            )
         }
     }
 }

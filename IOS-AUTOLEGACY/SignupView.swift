@@ -10,6 +10,7 @@ struct SignupView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var showFaceIDSetup = false
     var onSignup: () -> Void
     var onLoginTap: (() -> Void)? = nil
 
@@ -202,6 +203,15 @@ struct SignupView: View {
             } message: {
                 Text(errorMessage ?? "An error occurred during signup")
             }
+            .sheet(isPresented: $showFaceIDSetup) {
+                FaceIDSetupView(
+                    biometricType: BiometricAuthentication.shared.getBiometricType(),
+                    isEnrolled: BiometricAuthentication.shared.isBiometricAvailable()
+                )
+            } onDismiss: {
+                // Call onSignup after Face ID setup sheet is dismissed
+                onSignup()
+            }
         }
     }
 
@@ -224,8 +234,15 @@ struct SignupView: View {
                 DispatchQueue.main.async {
                     print("📱 Saving session...")
                     SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
-                    print("📱 Calling onSignup callback...")
-                    onSignup()
+                    
+                    // Show Face ID setup if biometrics available
+                    if BiometricAuthentication.shared.isBiometricAvailable() {
+                        print("📱 Showing Face ID setup...")
+                        showFaceIDSetup = true
+                    } else {
+                        print("📱 Calling onSignup callback...")
+                        onSignup()
+                    }
                 }
             } catch let error as NSError {
                 print("❌ Signup error: \(error.code) - \(error.localizedDescription)")

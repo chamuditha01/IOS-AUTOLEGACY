@@ -62,4 +62,17 @@ class SessionManager {
         try await logoutUser()
         clearSession()
     }
+    
+    // MARK: - Face Unlock Preferences
+    
+    private let faceUnlockEnabledKey = "autolegacy_face_unlock_enabled"
+    
+    func enableFaceUnlock(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: faceUnlockEnabledKey)
+        print("👤 Face unlock \(enabled ? "enabled" : "disabled")")
+    }
+    
+    func isFaceUnlockEnabled() -> Bool {
+        return UserDefaults.standard.bool(forKey: faceUnlockEnabledKey)
+    }
 }

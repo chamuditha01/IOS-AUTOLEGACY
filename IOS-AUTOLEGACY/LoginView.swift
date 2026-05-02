@@ -7,6 +7,7 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var isFaceUnlockLoading = false
     var onLogin: () -> Void
     var onSignupTap: (() -> Void)? = nil
 
@@ -126,10 +127,38 @@ struct LoginView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
 
                     Spacer(minLength: 20 * scale)
+                    
+                    // Face Unlock Button
+                    if SessionManager.shared.isFaceUnlockEnabled() && BiometricAuthentication.shared.isBiometricAvailable() {
+                        Button {
+                            handleFaceUnlock()
+                        } label: {
+                            HStack(spacing: 12 * scale) {
+                                Image(systemName: BiometricAuthentication.shared.getBiometricType() == .faceID ? "face.smiling" : "touchid")
+                                    .font(.system(size: 18 * scale, weight: .semibold))
+                                
+                                if isFaceUnlockLoading {
+                                    ProgressView()
+                                        .tint(AppTheme.Colors.secondaryText)
+                                } else {
+                                    Text(BiometricAuthentication.shared.getBiometricType() == .faceID ? "Unlock with Face ID" : "Unlock with Touch ID")
+                                        .font(.system(size: 14 * scale, weight: .semibold))
+                                }
+                            }
+                            .foregroundColor(AppTheme.Colors.secondaryText)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: AppTheme.Metrics.buttonHeight(scale: scale) - 4)
+                            .background(AppTheme.Colors.whiteSurface.opacity(0.7))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.Metrics.buttonCornerRadius(scale: scale), style: .continuous)
+                                    .stroke(AppTheme.Colors.accentBlue.opacity(0.5), lineWidth: 2)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.buttonCornerRadius(scale: scale), style: .continuous))
+                        }
+                        .disabled(isFaceUnlockLoading)
+                    }
 
-                    Button {
-                        handleLogin()
-                    } label: {
+                    Spacer(minLength: 20 * scale)
                         if isLoading {
                             ProgressView()
                                 .tint(AppTheme.Colors.buttonText)
@@ -208,6 +237,37 @@ struct LoginView: View {
                     errorMessage = "Connection error: \(error.localizedDescription)"
                     showError = true
                     isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func handleFaceUnlock() {
+        isFaceUnlockLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                try await BiometricAuthentication.shared.authenticate(reason: "Unlock AutoLegacy with your biometrics")
+                
+                // If biometric auth successful, we need credentials to login
+                // For now, we'll show a message that they need to enter credentials
+                DispatchQueue.main.async {
+                    isFaceUnlockLoading = false
+                    errorMessage = "Biometric verified! Please enter your credentials to complete login."
+                    showError = true
+                }
+            } catch let error as BiometricAuthentication.AuthenticationError {
+                DispatchQueue.main.async {
+                    isFaceUnlockLoading = false
+                    errorMessage = error.errorDescription ?? "Biometric authentication failed"
+                    showError = true
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isFaceUnlockLoading = false
+                    errorMessage = error.localizedDescription
+                    showError = true
                 }
             }
         }
