@@ -60,9 +60,9 @@ struct ContentView: View {
                         }
                     }
                 case .signup:
-                    SignupView { phoneNumber in
+                    SignupView {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            authScreen = .otp(phoneNumber: phoneNumber)
+                            authScreen = .home
                         }
                     }
                 case .otp(let phoneNumber):

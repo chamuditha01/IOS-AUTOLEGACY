@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    @State private var email = ""
+    @State private var mobile = ""
     @State private var password = ""
     @State private var showPassword = false
     @State private var isLoading = false
@@ -65,23 +65,21 @@ struct LoginView: View {
 
                     Spacer(minLength: 24 * scale)
 
-                    Text("Email Address")
+                    Text("Mobile Number")
                         .font(AppTheme.Typography.authSectionTitle(scale: scale))
                         .foregroundColor(AppTheme.Colors.secondaryText)
 
                     Spacer(minLength: 14 * scale)
 
                     HStack(spacing: 12 * scale) {
-                        Image(systemName: "envelope")
+                        Image(systemName: "phone")
                             .font(.system(size: 18 * scale, weight: .semibold))
                             .foregroundColor(AppTheme.Colors.phoneBlue)
 
-                        TextField("Enter your email", text: $email)
+                        TextField("Enter your mobile number", text: $mobile)
                             .font(AppTheme.Typography.authInput(scale: scale))
                             .foregroundColor(AppTheme.Colors.fieldText)
-                            .keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled(true)
+                            .keyboardType(.numberPad)
                             .disabled(isLoading)
                     }
                     .padding(.horizontal, 18 * scale)
@@ -144,7 +142,7 @@ struct LoginView: View {
                     .frame(height: AppTheme.Metrics.buttonHeight(scale: scale))
                     .background(AppTheme.Colors.primaryButton)
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.buttonCornerRadius(scale: scale), style: .continuous))
-                    .disabled(isLoading || email.isEmpty || password.isEmpty)
+                    .disabled(isLoading || mobile.isEmpty || password.isEmpty)
 
                     Spacer(minLength: 28 * scale)
                 }
@@ -165,11 +163,11 @@ struct LoginView: View {
         
         Task {
             do {
-                let userId = try await loginWithEmail(email: email, password: password)
-                SessionManager.shared.saveUserSession(userId: userId, email: email)
+                let result = try await loginWithMobileAndPassword(mobile: mobile, password: password)
+                SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
                 onLogin()
             } catch {
-                errorMessage = "Login failed: \(error.localizedDescription)"
+                errorMessage = error.localizedDescription
                 showError = true
                 isLoading = false
             }

@@ -1,8 +1,16 @@
 import SwiftUI
 
 struct SignupView: View {
-    @State private var phoneNumber = ""
-    var onGetCode: (String) -> Void
+    @State private var name = ""
+    @State private var mobile = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var showPassword = false
+    @State private var showConfirmPassword = false
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+    var onSignup: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -19,124 +27,182 @@ struct SignupView: View {
 
                     Spacer(minLength: AppTheme.Metrics.titleSpacing(scale: scale))
 
-                    Text("SignUp")
+                    Text("Create Account")
                         .font(AppTheme.Typography.authTitle(scale: scale))
                         .foregroundColor(AppTheme.Colors.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .center)
 
-                    Text("Track your all vehicle details")
+                    Text("Join AutoLegacy today")
                         .font(AppTheme.Typography.authSubtitle(scale: scale))
                         .foregroundColor(AppTheme.Colors.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .center)
 
-                    Spacer(minLength: 30 * scale)
-
-                   
-                    Spacer(minLength: 26 * scale)
-
-
                     Spacer(minLength: 24 * scale)
 
-                  
-                    //Spacer(minLength: 14 * scale)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 16 * scale) {
+                            // Name Field
+                            Text("Full Name")
+                                .font(AppTheme.Typography.authSectionTitle(scale: scale))
+                                .foregroundColor(AppTheme.Colors.secondaryText)
 
-                    HStack(spacing: 12 * scale) {
-                        Image(systemName: "person")
-                            .font(.system(size: 18 * scale, weight: .semibold))
-                            .foregroundColor(AppTheme.Colors.phoneBlue)
+                            HStack(spacing: 12 * scale) {
+                                Image(systemName: "person")
+                                    .font(.system(size: 18 * scale, weight: .semibold))
+                                    .foregroundColor(AppTheme.Colors.phoneBlue)
 
-                        Text("Name")
-                            .font(.system(size: 20 * scale, weight: .medium))
-                            .foregroundColor(AppTheme.Colors.inputText)
+                                TextField("Enter your full name", text: $name)
+                                    .font(AppTheme.Typography.authInput(scale: scale))
+                                    .foregroundColor(AppTheme.Colors.fieldText)
+                                    .disabled(isLoading)
+                            }
+                            .padding(.horizontal, 18 * scale)
+                            .frame(height: AppTheme.Metrics.inputHeight(scale: scale))
+                            .background(AppTheme.Colors.whiteSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
 
-                        Rectangle()
-                            .fill(AppTheme.Colors.inputDivider)
-                            .frame(width: 2, height: 34 * scale)
+                            // Mobile Field
+                            Text("Mobile Number")
+                                .font(AppTheme.Typography.authSectionTitle(scale: scale))
+                                .foregroundColor(AppTheme.Colors.secondaryText)
 
-                        TextField("Enter your Name", text: $phoneNumber)
-                            .font(AppTheme.Typography.authInput(scale: scale))
-                            .foregroundColor(AppTheme.Colors.fieldText)
-                            .keyboardType(.numberPad)
-                    }
-                    .padding(.horizontal, 18 * scale)
-                    .padding(.vertical, 18 * scale)
-                    .frame(height: AppTheme.Metrics.inputHeight(scale: 0.8))
-                    .background(AppTheme.Colors.whiteSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
+                            HStack(spacing: 12 * scale) {
+                                Image(systemName: "phone")
+                                    .font(.system(size: 18 * scale, weight: .semibold))
+                                    .foregroundColor(AppTheme.Colors.phoneBlue)
 
-                    Spacer(minLength: 0.1 * scale)
-                    
-                    HStack(spacing: 12 * scale) {
-                        Image(systemName: "lock")
-                            .font(.system(size: 18 * scale, weight: .semibold))
-                            .foregroundColor(AppTheme.Colors.phoneBlue)
+                                TextField("Enter your mobile number", text: $mobile)
+                                    .font(AppTheme.Typography.authInput(scale: scale))
+                                    .foregroundColor(AppTheme.Colors.fieldText)
+                                    .keyboardType(.numberPad)
+                                    .disabled(isLoading)
+                            }
+                            .padding(.horizontal, 18 * scale)
+                            .frame(height: AppTheme.Metrics.inputHeight(scale: scale))
+                            .background(AppTheme.Colors.whiteSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
 
-                        Text("Pass")
-                            .font(.system(size: 20 * scale, weight: .medium))
-                            .foregroundColor(AppTheme.Colors.inputText)
+                            // Password Field
+                            Text("Password")
+                                .font(AppTheme.Typography.authSectionTitle(scale: scale))
+                                .foregroundColor(AppTheme.Colors.secondaryText)
 
-                        Rectangle()
-                            .fill(AppTheme.Colors.inputDivider)
-                            .frame(width: 2, height: 34 * scale)
+                            HStack(spacing: 12 * scale) {
+                                Image(systemName: "lock")
+                                    .font(.system(size: 18 * scale, weight: .semibold))
+                                    .foregroundColor(AppTheme.Colors.phoneBlue)
 
-                        TextField("Enter Password", text: $phoneNumber)
-                            .font(AppTheme.Typography.authInput(scale: scale))
-                            .foregroundColor(AppTheme.Colors.fieldText)
-                            .keyboardType(.numberPad)
-                    }
-                    .padding(.horizontal, 18 * scale)
-                    .padding(.vertical, 18 * scale)
-                    .frame(height: AppTheme.Metrics.inputHeight(scale: 0.8))
-                    .background(AppTheme.Colors.whiteSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
+                                if showPassword {
+                                    TextField("Enter your password", text: $password)
+                                        .font(AppTheme.Typography.authInput(scale: scale))
+                                        .foregroundColor(AppTheme.Colors.fieldText)
+                                        .disabled(isLoading)
+                                } else {
+                                    SecureField("Enter your password", text: $password)
+                                        .font(AppTheme.Typography.authInput(scale: scale))
+                                        .foregroundColor(AppTheme.Colors.fieldText)
+                                        .disabled(isLoading)
+                                }
 
-                    Spacer(minLength: 0.1 * scale)
+                                Button(action: { showPassword.toggle() }) {
+                                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                                        .font(.system(size: 16 * scale, weight: .semibold))
+                                        .foregroundColor(AppTheme.Colors.phoneBlue)
+                                }
+                                .disabled(isLoading)
+                            }
+                            .padding(.horizontal, 18 * scale)
+                            .frame(height: AppTheme.Metrics.inputHeight(scale: scale))
+                            .background(AppTheme.Colors.whiteSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
 
-                 
-                    //Spacer(minLength: 14 * scale)
+                            // Confirm Password Field
+                            Text("Confirm Password")
+                                .font(AppTheme.Typography.authSectionTitle(scale: scale))
+                                .foregroundColor(AppTheme.Colors.secondaryText)
 
-                    HStack(spacing: 12 * scale) {
-                        Image(systemName: "phone")
-                            .font(.system(size: 18 * scale, weight: .semibold))
-                            .foregroundColor(AppTheme.Colors.phoneBlue)
+                            HStack(spacing: 12 * scale) {
+                                Image(systemName: "lock")
+                                    .font(.system(size: 18 * scale, weight: .semibold))
+                                    .foregroundColor(AppTheme.Colors.phoneBlue)
 
-                        Text("+94")
-                            .font(.system(size: 20 * scale, weight: .medium))
-                            .foregroundColor(AppTheme.Colors.inputText)
+                                if showConfirmPassword {
+                                    TextField("Confirm your password", text: $confirmPassword)
+                                        .font(AppTheme.Typography.authInput(scale: scale))
+                                        .foregroundColor(AppTheme.Colors.fieldText)
+                                        .disabled(isLoading)
+                                } else {
+                                    SecureField("Confirm your password", text: $confirmPassword)
+                                        .font(AppTheme.Typography.authInput(scale: scale))
+                                        .foregroundColor(AppTheme.Colors.fieldText)
+                                        .disabled(isLoading)
+                                }
 
-                        Rectangle()
-                            .fill(AppTheme.Colors.inputDivider)
-                            .frame(width: 2, height: 34 * scale)
+                                Button(action: { showConfirmPassword.toggle() }) {
+                                    Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
+                                        .font(.system(size: 16 * scale, weight: .semibold))
+                                        .foregroundColor(AppTheme.Colors.phoneBlue)
+                                }
+                                .disabled(isLoading)
+                            }
+                            .padding(.horizontal, 18 * scale)
+                            .frame(height: AppTheme.Metrics.inputHeight(scale: scale))
+                            .background(AppTheme.Colors.whiteSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
 
-                        TextField("Enter your Mobile Number", text: $phoneNumber)
-                            .font(AppTheme.Typography.authInput(scale: scale))
-                            .foregroundColor(AppTheme.Colors.fieldText)
-                            .keyboardType(.numberPad)
-                    }
-                    .padding(.horizontal, 18 * scale)
-                    .padding(.vertical, 18 * scale)
-                    .frame(height: AppTheme.Metrics.inputHeight(scale: 0.8))
-                    .background(AppTheme.Colors.whiteSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.inputCornerRadius(scale: scale), style: .continuous))
+                            Spacer(minLength: 10 * scale)
 
-                    Spacer(minLength: 0.1 * scale)
-
-                    Button {
-                        onGetCode(phoneNumber)
-                    } label: {
-                        Text("Get Code")
-                            .font(AppTheme.Typography.authButton(scale: 1.2))
-                            .foregroundColor(AppTheme.Colors.buttonText)
+                            Button {
+                                handleSignup()
+                            } label: {
+                                if isLoading {
+                                    ProgressView()
+                                        .tint(AppTheme.Colors.buttonText)
+                                } else {
+                                    Text("Create Account")
+                                        .font(AppTheme.Typography.authButton(scale: scale))
+                                        .foregroundColor(AppTheme.Colors.buttonText)
+                                }
+                            }
                             .frame(maxWidth: .infinity)
-                            .frame(height: AppTheme.Layout.getStartedButtonHeight)
-                            .background(AppTheme.Layout.getStartedPrimaryButtonColor)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Layout.getStartedButtonCornerRadius, style: .continuous))
+                            .frame(height: AppTheme.Metrics.buttonHeight(scale: scale))
+                            .background(AppTheme.Colors.primaryButton)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.buttonCornerRadius(scale: scale), style: .continuous))
+                            .disabled(isLoading || !isFormValid)
+                        }
+                        .padding(.horizontal, 20 * scale)
+                        .padding(.bottom, 40 * scale)
                     }
 
                     Spacer(minLength: 28 * scale)
                 }
-                .padding(.horizontal, 32 * scale)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .alert("Signup Error", isPresented: $showError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage ?? "An error occurred during signup")
+            }
+        }
+    }
+
+    private var isFormValid: Bool {
+        !name.isEmpty && !mobile.isEmpty && !password.isEmpty && password == confirmPassword && password.count >= 6
+    }
+
+    private func handleSignup() {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let result = try await signUpWithMobileAndPassword(name: name, mobile: mobile, password: password)
+                SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
+                onSignup()
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+                isLoading = false
             }
         }
     }
@@ -148,5 +214,5 @@ struct SignupView: View {
 }
 
 #Preview {
-    SignupView { _ in }
+    SignupView { }
 }

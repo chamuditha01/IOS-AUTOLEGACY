@@ -39,24 +39,73 @@ func checkConnection() async {
 
 // MARK: - Authentication Functions
 
-func loginWithEmail(email: String, password: String) async throws -> String {
+struct User: Decodable {
+    let id: Int
+    let name: String
+    let mobile: String
+    let password: String
+}
+
+func loginWithMobileAndPassword(mobile: String, password: String) async throws -> (id: Int, name: String, mobile: String) {
     do {
-        let session = try await supabase.auth.signIn(email: email, password: password)
-        let userId = session.user.id.uuidString
-        print("✅ Login successful for user: \(userId)")
-        return userId
+        let users: [User] = try await supabase
+            .from("users")
+            .select("*")
+            .eq("mobile", value: mobile)
+            .execute()
+            .value
+        
+        guard let user = users.first else {
+            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not found"])
+        }
+        
+        // Verify password (simple comparison - in production, use bcrypt/hashed comparison)
+        guard user.password == password else {
+            throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid password"])
+        }
+        
+        print("✅ Login successful for user: \(user.id)")
+        return (id: user.id, name: user.name, mobile: user.mobile)
     } catch {
         print("❌ Login failed: \(error)")
         throw error
     }
 }
 
-func signUpWithEmail(email: String, password: String) async throws -> String {
+func signUpWithMobileAndPassword(name: String, mobile: String, password: String) async throws -> (id: Int, name: String, mobile: String) {
     do {
+<<<<<<< HEAD
         let session = try await supabase.auth.signUp(email: email, password: password)
         let userId = session.user.id.uuidString ?? ""
         print("✅ Signup successful for user: \(userId)")
         return userId
+=======
+        // Check if mobile already exists
+        let existingUsers: [User] = try await supabase
+            .from("users")
+            .select("*")
+            .eq("mobile", value: mobile)
+            .execute()
+            .value
+        
+        guard existingUsers.isEmpty else {
+            throw NSError(domain: "Auth", code: -3, userInfo: [NSLocalizedDescriptionKey: "Mobile number already registered"])
+        }
+        
+        // Insert new user
+        let newUser: User = try await supabase
+            .from("users")
+            .insert([
+                ["name": name, "mobile": mobile, "password": password]
+            ])
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        print("✅ Signup successful for user: \(newUser.id)")
+        return (id: newUser.id, name: newUser.name, mobile: newUser.mobile)
+>>>>>>> dev
     } catch {
         print("❌ Signup failed: \(error)")
         throw error
