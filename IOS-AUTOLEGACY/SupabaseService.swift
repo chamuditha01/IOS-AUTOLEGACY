@@ -296,7 +296,7 @@ struct VehicleStatData: Decodable {
     }
 }
 
-struct FuelExpenseData: Codable {
+struct FuelExpenseData: Decodable {
     let id: String?
     let amount: Float
     let vehicleid: String
@@ -309,6 +309,22 @@ struct FuelExpenseData: Codable {
         case vehicleid
         case ownerid
         case created_at
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        amount = try container.decode(Float.self, forKey: .amount)
+        vehicleid = try container.decode(String.self, forKey: .vehicleid)
+        ownerid = try container.decode(Int.self, forKey: .ownerid)
+        
+        // created_at might come as string or other format, handle gracefully
+        if let createdStr = try container.decodeIfPresent(String.self, forKey: .created_at) {
+            created_at = createdStr
+        } else {
+            created_at = nil
+        }
     }
 }
 
@@ -329,17 +345,23 @@ func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws
         print("📱 Saving fuel expense - amount: \(amount), vehicleId: \(vehicleId), userId: \(userId)")
         
         let insertData = FuelExpenseInsert(amount: amount, vehicleid: vehicleId, ownerid: userId)
-        let expense: FuelExpenseData = try await supabase
+        
+        let response = try await supabase
             .from("fuel")
             .insert([insertData])
             .select()
             .single()
             .execute()
-            .value
+        
+        print("📥 Response data: \(String(data: response.data, encoding: .utf8) ?? "N/A")")
+        
+        let decoder = JSONDecoder()
+        let expense = try decoder.decode(FuelExpenseData.self, from: response.data)
         
         print("✅ Fuel expense saved successfully: \(expense.id ?? "N/A")")
     } catch {
-        print("❌ Failed to save fuel expense: \(error)")
+        print("❌ Failed to save fuel expense: \(error.localizedDescription)")
+        print("❌ Full error: \(error)")
         throw error
     }
 }
