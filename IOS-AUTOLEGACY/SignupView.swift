@@ -169,7 +169,7 @@ struct SignupView: View {
                             .frame(height: AppTheme.Metrics.buttonHeight(scale: scale))
                             .background(AppTheme.Colors.primaryButton)
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.Metrics.buttonCornerRadius(scale: scale), style: .continuous))
-                            .disabled(isLoading || !isFormValid)
+                            .opacity(isLoading || !isFormValid ? 0.6 : 1.0)
 
                             Spacer(minLength: 20 * scale)
 
@@ -210,17 +210,25 @@ struct SignupView: View {
     }
 
     private func handleSignup() {
+        print("📱 handleSignup called - isLoading: \(isLoading), name: \(name), mobile: \(mobile), password: \(password), confirmPassword: \(confirmPassword)")
+        print("📱 Form valid: \(isFormValid)")
+        
         isLoading = true
         errorMessage = nil
         
         Task {
             do {
+                print("📱 Calling signUpWithMobileAndPassword...")
                 let result = try await signUpWithMobileAndPassword(name: name, mobile: mobile, password: password)
+                print("✅ Signup successful: \(result)")
                 DispatchQueue.main.async {
+                    print("📱 Saving session...")
                     SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
+                    print("📱 Calling onSignup callback...")
                     onSignup()
                 }
             } catch let error as NSError {
+                print("❌ Signup error: \(error.code) - \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     // Handle specific error codes
                     switch error.code {
@@ -235,6 +243,7 @@ struct SignupView: View {
                     isLoading = false
                 }
             } catch {
+                print("❌ Unexpected error: \(error)")
                 DispatchQueue.main.async {
                     errorMessage = "Connection error: \(error.localizedDescription)"
                     showError = true
