@@ -2,6 +2,9 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var selectedVehicleIndex = 0
+    @State private var vehicles: [Vehicle] = []
+    @State private var isLoading = true
+    @State private var showAlertView = false
 
     private let serviceItems: [ServiceItem] = [
         .init(title: "Expenses", icon: "dollarsign.circle.fill"),
@@ -9,61 +12,141 @@ struct HomeView: View {
         .init(title: "Service", icon: "wrench.and.screwdriver.fill")
     ]
 
-    private let vehicles: [Vehicle] = [
-        .init(name: "2026 Ford", model: "Mustang GT", vin: "WBA53AK06NSXXXX", status: "EXCELLENT", statusColor: Color(red: 0.66, green: 1.0, blue: 0.68), bodyColor: Color.yellow.opacity(0.95), metrics: [
-            .init(title: "OIL LIFE", value: "92%", icon: "steeringwheel"),
-            .init(title: "TYRES", value: "70%", icon: "exclamationmark.tirepressure"),
-            .init(title: "BATTERY", value: "80%", icon: "battery.75")
-        ]),
-        .init(name: "2025 BMW", model: "M4 Competition", vin: "WBX98QJ24ZZXXXX", status: "NEEDS CHECK", statusColor: Color.orange.opacity(0.95), bodyColor: Color.blue.opacity(0.9), metrics: [
-            .init(title: "OIL LIFE", value: "78%", icon: "steeringwheel"),
-            .init(title: "TYRES", value: "61%", icon: "exclamationmark.tirepressure"),
-            .init(title: "BATTERY", value: "88%", icon: "battery.75")
-        ]),
-        .init(name: "2024 Audi", model: "RS5 Sportback", vin: "WAU12PL77AXXXXX", status: "GOOD", statusColor: Color.green.opacity(0.95), bodyColor: Color.red.opacity(0.85), metrics: [
-            .init(title: "OIL LIFE", value: "85%", icon: "steeringwheel"),
-            .init(title: "TYRES", value: "74%", icon: "exclamationmark.tirepressure"),
-            .init(title: "BATTERY", value: "90%", icon: "battery.75")
-        ])
-    ]
-
     var body: some View {
         ZStack {
             AppTheme.Gradients.auth
                 .ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
-                    topBar
-
-                    vehicleCarousel
-
-                    serviceReminder
-
-                    Text("Services")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(AppTheme.Colors.whiteSurface)
-                        .padding(.top, 4)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(serviceItems) { item in
-                                servicePill(item)
-                            }
-                        }
-                        .padding(.trailing, 6)
-                    }
-                    .frame(height: 104)
-
-                    securityAlerts
+            if isLoading {
+                VStack {
+                    ProgressView()
+                        .tint(AppTheme.Colors.whiteSurface)
+                        .scaleEffect(1.5)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 120)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        topBar
+
+                        if vehicles.isEmpty {
+                            emptyState
+                        } else {
+                            vehicleCarousel
+                        }
+
+                        serviceReminder
+
+                        Text("Services")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundColor(AppTheme.Colors.whiteSurface)
+                            .padding(.top, 4)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(serviceItems) { item in
+                                    servicePill(item)
+                                }
+                            }
+                            .padding(.trailing, 6)
+                        }
+                        .frame(height: 104)
+
+                        securityAlerts
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 120)
+                }
+            }
+        }
+        .onAppear {
+            fetchVehicles()
+        }
+    }
+
+    private func fetchVehicles() {
+        isLoading = true
+        
+        Task {
+            do {
+                guard let userId = SessionManager.shared.getUserId() else {
+                    print("❌ No user ID found")
+                    isLoading = false
+                    return
+                }
+                
+                print("📱 Fetching vehicles for user: \(userId)")
+                let vehiclesWithStats = try await fetchVehiclesForUser(userId: userId)
+                
+                DispatchQueue.main.async {
+                    vehicles = vehiclesWithStats.map { vehicleData, stats in
+                        let oilValue = stats?.Oil ?? "N/A"
+                        let tiresValue = stats?.Tires ?? "N/A"
+                        let batteryValue = stats?.Battery ?? "N/A"
+                        
+                        // Determine status based on stats
+                        let status = determineStatus(oil: oilValue, tires: tiresValue, battery: batteryValue)
+                        
+                        return Vehicle(
+                            name: vehicleData.make,
+                            model: vehicleData.model,
+                            vin: vehicleData.id,
+                            status: status.name,
+                            statusColor: status.color,
+                            bodyColor: Color.blue.opacity(0.9),
+                            metrics: [
+                                .init(title: "OIL LIFE", value: oilValue, icon: "steeringwheel"),
+                                .init(title: "TYRES", value: tiresValue, icon: "exclamationmark.tirepressure"),
+                                .init(title: "BATTERY", value: batteryValue, icon: "battery.75")
+                            ]
+                        )
+                    }
+                    isLoading = false
+                }
+            } catch {
+                print("❌ Error fetching vehicles: \(error)")
+                DispatchQueue.main.async {
+                    isLoading = false
+                }
             }
         }
     }
-    @State private var showAlertView = false
+
+    private func determineStatus(oil: String, tires: String, battery: String) -> (name: String, color: Color) {
+        // Parse values and determine overall status
+        let oilPercent = Int(oil.replacingOccurrences(of: "%", with: "")) ?? 50
+        let tiresPercent = Int(tires.replacingOccurrences(of: "%", with: "")) ?? 50
+        let batteryPercent = Int(battery.replacingOccurrences(of: "%", with: "")) ?? 50
+        
+        let minValue = min(oilPercent, tiresPercent, batteryPercent)
+        
+        if minValue < 50 {
+            return ("CRITICAL", Color.red.opacity(0.95))
+        } else if minValue < 70 {
+            return ("NEEDS CHECK", Color.orange.opacity(0.95))
+        } else {
+            return ("EXCELLENT", Color(red: 0.66, green: 1.0, blue: 0.68))
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "car.fill")
+                .font(.system(size: 60))
+                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.5))
+            
+            Text("No Vehicles Found")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(AppTheme.Colors.whiteSurface)
+            
+            Text("Add a vehicle to get started")
+                .font(.system(size: 14))
+                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
     private var topBar: some View {
         HStack {
             Text("AutoLegacy")

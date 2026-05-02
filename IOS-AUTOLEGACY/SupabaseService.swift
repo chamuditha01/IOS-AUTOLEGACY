@@ -209,3 +209,75 @@ func getCurrentUser() async throws -> Int? {
     // Return nil - session is managed by SessionManager
     return SessionManager.shared.getUserId()
 }
+
+// MARK: - Vehicle Management
+
+struct VehicleData: Decodable {
+    let id: String
+    let make: String
+    let model: String
+    let currentmileage: Float?
+    let owner_id: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case make
+        case model
+        case currentmileage
+        case owner_id
+    }
+}
+
+struct VehicleStatData: Decodable {
+    let id: String
+    let Oil: String?
+    let Tires: String?
+    let Battery: String?
+    let vehicleid: String
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case Oil
+        case Tires
+        case Battery
+        case vehicleid
+    }
+}
+
+func fetchVehiclesForUser(userId: Int) async throws -> [(vehicle: VehicleData, stats: VehicleStatData?)] {
+    do {
+        print("📱 Fetching vehicles for user ID: \(userId)...")
+        
+        // Fetch all vehicles for the user
+        let vehicles: [VehicleData] = try await supabase
+            .from("vehicle")
+            .select("*")
+            .eq("owner_id", value: String(userId))
+            .execute()
+            .value
+        
+        print("✅ Found \(vehicles.count) vehicles")
+        
+        // For each vehicle, fetch its stats
+        var vehiclesWithStats: [(vehicle: VehicleData, stats: VehicleStatData?)] = []
+        
+        for vehicle in vehicles {
+            print("📱 Fetching stats for vehicle: \(vehicle.id)")
+            let stats: [VehicleStatData] = try await supabase
+                .from("vehiclestat")
+                .select("*")
+                .eq("vehicleid", value: vehicle.id)
+                .execute()
+                .value
+            
+            vehiclesWithStats.append((vehicle: vehicle, stats: stats.first))
+            print("✅ Vehicle \(vehicle.id): oil=\(stats.first?.Oil ?? "N/A"), tires=\(stats.first?.Tires ?? "N/A"), battery=\(stats.first?.Battery ?? "N/A")")
+        }
+        
+        print("✅ Fetched \(vehiclesWithStats.count) vehicles with stats")
+        return vehiclesWithStats
+    } catch {
+        print("❌ Failed to fetch vehicles: \(error)")
+        throw error
+    }
+}
