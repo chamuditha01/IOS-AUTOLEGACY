@@ -312,15 +312,26 @@ struct FuelExpenseData: Codable {
     }
 }
 
+struct FuelExpenseInsert: Encodable {
+    let amount: Float
+    let vehicleid: String
+    let ownerid: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case amount
+        case vehicleid
+        case ownerid
+    }
+}
+
 func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws {
     do {
         print("📱 Saving fuel expense - amount: \(amount), vehicleId: \(vehicleId), userId: \(userId)")
         
+        let insertData = FuelExpenseInsert(amount: amount, vehicleid: vehicleId, ownerid: userId)
         let expense: FuelExpenseData = try await supabase
             .from("fuel")
-            .insert([
-                ["amount": amount, "vehicleid": vehicleId, "ownerid": userId]
-            ])
+            .insert([insertData])
             .select()
             .single()
             .execute()
