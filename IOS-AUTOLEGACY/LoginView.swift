@@ -255,12 +255,24 @@ struct LoginView: View {
             do {
                 try await BiometricAuthentication.shared.authenticate(reason: "Unlock AutoLegacy with your biometrics")
                 
-                // If biometric auth successful, we need credentials to login
-                // For now, we'll show a message that they need to enter credentials
-                DispatchQueue.main.async {
-                    isFaceUnlockLoading = false
-                    errorMessage = "Biometric verified! Please enter your credentials to complete login."
-                    showError = true
+                // Biometric auth successful - get stored mobile number
+                if let storedMobile = SessionManager.shared.getUserMobile() {
+                    DispatchQueue.main.async {
+                        // Auto-populate mobile field
+                        self.mobile = storedMobile
+                        isFaceUnlockLoading = false
+                        
+                        // Show a brief success message then focus on password
+                        errorMessage = "✅ Face recognized! Please enter your password."
+                        showError = true
+                    }
+                } else {
+                    // No stored mobile, ask user to login normally
+                    DispatchQueue.main.async {
+                        isFaceUnlockLoading = false
+                        errorMessage = "Face verified! Please log in with your credentials."
+                        showError = true
+                    }
                 }
             } catch let error as BiometricAuthentication.AuthenticationError {
                 DispatchQueue.main.async {
