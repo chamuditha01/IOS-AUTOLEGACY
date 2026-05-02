@@ -214,11 +214,14 @@ struct LoginView: View {
         isLoading = true
         errorMessage = nil
         
+        print("🔓 handleLogin called with password: \(password.isEmpty ? "EMPTY" : "LENGTH: \(password.count)")")
+        
         Task {
             do {
                 let result = try await loginWithMobileAndPassword(mobile: mobile, password: password)
                 DispatchQueue.main.async {
                     // Save session with password for Face ID auto-login
+                    print("🔓 Saving session with password: \(self.password.isEmpty ? "EMPTY" : "LENGTH: \(self.password.count)")")
                     SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile, password: self.password)
                     onLogin()
                 }
@@ -257,8 +260,15 @@ struct LoginView: View {
                 try await BiometricAuthentication.shared.authenticate(reason: "Unlock AutoLegacy with your biometrics")
                 
                 // Biometric auth successful - get stored credentials
-                guard let storedMobile = SessionManager.shared.getUserMobile(),
-                      let storedPassword = SessionManager.shared.getUserPassword() else {
+                let storedMobile = SessionManager.shared.getUserMobile()
+                let storedPassword = SessionManager.shared.getUserPassword()
+                
+                print("🔐 Face ID auth successful")
+                print("🔐 Retrieved mobile: \(storedMobile ?? "NIL")")
+                print("🔐 Retrieved password: \(storedPassword == nil ? "NIL" : "LENGTH: \(storedPassword!.count)")")
+                
+                guard let mobile = storedMobile,
+                      let password = storedPassword else {
                     DispatchQueue.main.async {
                         isFaceUnlockLoading = false
                         errorMessage = "Stored credentials not found. Please log in manually."
@@ -268,10 +278,10 @@ struct LoginView: View {
                 }
                 
                 // Auto-login with stored credentials
-                let result = try await loginWithMobileAndPassword(mobile: storedMobile, password: storedPassword)
+                let result = try await loginWithMobileAndPassword(mobile: mobile, password: password)
                 DispatchQueue.main.async {
                     isFaceUnlockLoading = false
-                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile, password: storedPassword)
+                    SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile, password: password)
                     onLogin()
                 }
             } catch let error as BiometricAuthentication.AuthenticationError {

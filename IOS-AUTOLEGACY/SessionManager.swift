@@ -28,7 +28,10 @@ class SessionManager {
         
         // Store password if provided (for Face ID auto-login)
         if let password = password {
+            print("🔐 Saving password: \(password.isEmpty ? "EMPTY" : "LENGTH: \(password.count)")")
             savePassword(password)
+        } else {
+            print("🔐 No password provided to save")
         }
         
         print("✅ Session saved for user: \(userId)")
@@ -50,11 +53,21 @@ class SessionManager {
     }
     
     func getUserPassword() -> String? {
-        return UserDefaults.standard.string(forKey: userPasswordKey)
+        let password = UserDefaults.standard.string(forKey: userPasswordKey)
+        print("🔐 Retrieved password: \(password == nil ? "NIL" : "LENGTH: \(password!.count)")")
+        return password
     }
     
     private func savePassword(_ password: String) {
+        print("🔐 Storing password to UserDefaults with key: \(userPasswordKey)")
         UserDefaults.standard.set(password, forKey: userPasswordKey)
+        
+        // Verify it was saved
+        if let saved = UserDefaults.standard.string(forKey: userPasswordKey) {
+            print("✅ Password verified saved: LENGTH: \(saved.count)")
+        } else {
+            print("❌ Password NOT saved!")
+        }
     }
     
     func isUserLoggedIn() -> Bool {
