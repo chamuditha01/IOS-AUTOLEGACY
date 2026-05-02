@@ -296,6 +296,43 @@ struct VehicleStatData: Decodable {
     }
 }
 
+struct FuelExpenseData: Codable {
+    let id: String?
+    let amount: Float
+    let vehicleid: String
+    let ownerid: Int
+    let created_at: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case amount
+        case vehicleid
+        case ownerid
+        case created_at
+    }
+}
+
+func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws {
+    do {
+        print("📱 Saving fuel expense - amount: \(amount), vehicleId: \(vehicleId), userId: \(userId)")
+        
+        let expense: FuelExpenseData = try await supabase
+            .from("fuel")
+            .insert([
+                ["amount": amount, "vehicleid": vehicleId, "ownerid": userId]
+            ])
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        print("✅ Fuel expense saved successfully: \(expense.id ?? "N/A")")
+    } catch {
+        print("❌ Failed to save fuel expense: \(error)")
+        throw error
+    }
+}
+
 func fetchVehiclesForUser(userId: Int) async throws -> [(vehicle: VehicleData, stats: VehicleStatData?)] {
     do {
         print("📱 Fetching vehicles for user ID: \(userId)...")

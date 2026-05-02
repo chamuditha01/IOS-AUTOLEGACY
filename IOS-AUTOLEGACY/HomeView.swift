@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var vehicles: [Vehicle] = []
     @State private var isLoading = true
     @State private var showAlertView = false
+    @State private var showFuelTracking = false
 
     private let serviceItems: [ServiceItem] = [
         .init(title: "Expenses", icon: "dollarsign.circle.fill"),
@@ -59,6 +60,9 @@ struct HomeView: View {
                     .padding(.bottom, 120)
                 }
             }
+        }
+        .sheet(isPresented: $showFuelTracking) {
+            FuelTrackingView()
         }
         .onAppear {
             fetchVehicles()
@@ -338,25 +342,31 @@ struct HomeView: View {
     }
 
     private func servicePill(_ item: ServiceItem) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: item.icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.75))
+        Button(action: {
+            if item.title == "Fuel" {
+                showFuelTracking = true
+            }
+        }) {
+            VStack(alignment: .leading, spacing: 14) {
+                Image(systemName: item.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.75))
 
-            Spacer()
+                Spacer()
 
-            Text(item.title)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.9))
+                Text(item.title)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.9))
+            }
+            .padding(14)
+            .frame(width: 108, height: 92, alignment: .leading)
+            .background(Color.white.opacity(0.10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .padding(14)
-        .frame(width: 108, height: 92, alignment: .leading)
-        .background(Color.white.opacity(0.10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var securityAlerts: some View {
