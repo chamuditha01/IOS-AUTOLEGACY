@@ -54,7 +54,7 @@ func loginWithEmail(email: String, password: String) async throws -> String {
 func signUpWithEmail(email: String, password: String) async throws -> String {
     do {
         let session = try await supabase.auth.signUp(email: email, password: password)
-        let userId = session.user?.id.uuidString ?? ""
+        let userId = session.user.id.uuidString ?? ""
         print("✅ Signup successful for user: \(userId)")
         return userId
     } catch {
