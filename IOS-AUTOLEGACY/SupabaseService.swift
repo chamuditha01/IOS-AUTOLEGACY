@@ -41,9 +41,37 @@ func checkConnection() async {
 
 struct User: Decodable {
     let id: Int
-    let name: String
-    let mobile: String
-    let password: String
+    let name: String?
+    let mobile: String?
+    let phone: String?
+    let password: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case mobile
+        case phone
+        case password
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        name = try? container.decode(String.self, forKey: .name)
+        mobile = try? container.decode(String.self, forKey: .mobile)
+        phone = try? container.decode(String.self, forKey: .phone)
+        password = try? container.decode(String.self, forKey: .password)
+    }
+    
+    // Get mobile - check both mobile and phone columns
+    var getMobile: String? {
+        return mobile ?? phone
+    }
+    
+    // Get name - default to empty if not found
+    var getName: String {
+        return name ?? "User"
+    }
 }
 
 func loginWithMobileAndPassword(mobile: String, password: String) async throws -> (id: Int, name: String, mobile: String) {
@@ -56,16 +84,41 @@ func loginWithMobileAndPassword(mobile: String, password: String) async throws -
             .value
         
         guard let user = users.first else {
-            throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not found"])
+            // Try with 'phone' column if 'mobile' didn't work
+            let usersPhone: [User] = try await supabase
+                .from("users")
+                .select("*")
+                .eq("phone", value: mobile)
+                .execute()
+                .value
+            
+            guard let phoneUser = usersPhone.first else {
+                throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not found"])
+            }
+            
+            guard phoneUser.password == password else {
+                throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid password"])
+            }
+            
+            guard let userMobile = phoneUser.getMobile else {
+                throw NSError(domain: "Auth", code: -4, userInfo: [NSLocalizedDescriptionKey: "Mobile number not found"])
+            }
+            
+            print("✅ Login successful for user: \(phoneUser.id)")
+            return (id: phoneUser.id, name: phoneUser.getName, mobile: userMobile)
         }
         
-        // Verify password (simple comparison - in production, use bcrypt/hashed comparison)
+        // Verify password
         guard user.password == password else {
             throw NSError(domain: "Auth", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid password"])
         }
         
+        guard let userMobile = user.getMobile else {
+            throw NSError(domain: "Auth", code: -4, userInfo: [NSLocalizedDescriptionKey: "Mobile number not found"])
+        }
+        
         print("✅ Login successful for user: \(user.id)")
-        return (id: user.id, name: user.name, mobile: user.mobile)
+        return (id: user.id, name: user.getName, mobile: userMobile)
     } catch {
         print("❌ Login failed: \(error)")
         throw error
@@ -74,7 +127,7 @@ func loginWithMobileAndPassword(mobile: String, password: String) async throws -
 
 func signUpWithMobileAndPassword(name: String, mobile: String, password: String) async throws -> (id: Int, name: String, mobile: String) {
     do {
-        // Check if mobile already exists
+        // Check if mobile already exists in 'mobile' column
         let existingUsers: [User] = try await supabase
             .from("users")
             .select("*")
@@ -82,11 +135,19 @@ func signUpWithMobileAndPassword(name: String, mobile: String, password: String)
             .execute()
             .value
         
-        guard existingUsers.isEmpty else {
+        // Also check 'phone' column as fallback
+        let existingPhoneUsers: [User] = try await supabase
+            .from("users")
+            .select("*")
+            .eq("phone", value: mobile)
+            .execute()
+            .value
+        
+        guard existingUsers.isEmpty && existingPhoneUsers.isEmpty else {
             throw NSError(domain: "Auth", code: -3, userInfo: [NSLocalizedDescriptionKey: "Mobile number already registered"])
         }
         
-        // Insert new user
+        // Insert new user - try with 'mobile' column first
         let newUser: User = try await supabase
             .from("users")
             .insert([
@@ -97,8 +158,12 @@ func signUpWithMobileAndPassword(name: String, mobile: String, password: String)
             .execute()
             .value
         
+        guard let userMobile = newUser.getMobile else {
+            throw NSError(domain: "Auth", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to retrieve mobile number"])
+        }
+        
         print("✅ Signup successful for user: \(newUser.id)")
-        return (id: newUser.id, name: newUser.name, mobile: newUser.mobile)
+        return (id: newUser.id, name: newUser.getName, mobile: userMobile)
     } catch {
         print("❌ Signup failed: \(error)")
         throw error

@@ -199,8 +199,20 @@ struct SignupView: View {
                 let result = try await signUpWithMobileAndPassword(name: name, mobile: mobile, password: password)
                 SessionManager.shared.saveUserSession(userId: result.id, name: result.name, mobile: result.mobile)
                 onSignup()
+            } catch let error as NSError {
+                // Handle specific error codes
+                switch error.code {
+                case -3:
+                    errorMessage = "This mobile number is already registered. Please use a different number."
+                case -4:
+                    errorMessage = "Failed to save mobile number. Please try again."
+                default:
+                    errorMessage = error.localizedDescription.isEmpty ? "An error occurred during signup. Please try again." : error.localizedDescription
+                }
+                showError = true
+                isLoading = false
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = "Connection error: \(error.localizedDescription)"
                 showError = true
                 isLoading = false
             }
