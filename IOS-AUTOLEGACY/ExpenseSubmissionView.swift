@@ -404,12 +404,22 @@ struct ExpenseSubmissionView: View {
                     throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
                 }
                 
+                // Generate a temporary expense ID for the image filename
+                let expenseId = UUID().uuidString
+                var savedImagePath: String? = nil
+                
+                // Save image locally if available
+                if let image = selectedImage {
+                    savedImagePath = try ImageStorageManager.shared.saveBillImage(image, forExpenseId: expenseId)
+                }
+                
                 try await saveExpense(
                     amount: Double(amount) ?? 0,
                     reason: reason,
                     text: extractedText,
                     vehicleId: selectedVehicleId,
-                    userId: userId
+                    userId: userId,
+                    billImagePath: savedImagePath
                 )
                 
                 DispatchQueue.main.async {
