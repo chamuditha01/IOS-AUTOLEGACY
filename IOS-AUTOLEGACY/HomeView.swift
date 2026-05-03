@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var isLoading = true
     @State private var showAlertView = false
     @State private var showFuelTracking = false
+    @State private var showExpenseTracking = false
 
     private let serviceItems: [ServiceItem] = [
         .init(title: "Expenses", icon: "dollarsign.circle.fill"),
@@ -63,6 +64,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showFuelTracking) {
             FuelTrackingView()
+        }
+        .sheet(isPresented: $showExpenseTracking) {
+            ExpenseSubmissionView()
         }
         .onAppear {
             fetchVehicles()
@@ -345,6 +349,8 @@ struct HomeView: View {
         Button(action: {
             if item.title == "Fuel" {
                 showFuelTracking = true
+            } else if item.title == "Expenses" {
+                showExpenseTracking = true
             }
         }) {
             VStack(alignment: .leading, spacing: 14) {

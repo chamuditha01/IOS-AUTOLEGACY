@@ -378,7 +378,58 @@ func saveFuelExpense(amount: Float, vehicleId: String, userId: Int) async throws
     }
 }
 
-// MARK: - Document Management
+// MARK: - Expense Management
+
+struct ExpenseInsert: Encodable {
+    let amount: Double
+    let reason: String?
+    let text: String?
+    let vehicle_id: String
+    let owner_id: Int
+}
+
+struct ExpenseData: Decodable {
+    let id: String?
+    let amount: Double
+    let reason: String?
+    let text: String?
+    let vehicle_id: String
+    let owner_id: Int
+    let created_at: String?
+}
+
+func saveExpense(amount: Double, reason: String, text: String, vehicleId: String, userId: Int) async throws {
+    do {
+        print("📱 Saving expense - amount: \(amount), vehicleId: \(vehicleId), userId: \(userId)")
+        
+        let insertData = ExpenseInsert(
+            amount: amount,
+            reason: reason.isEmpty ? nil : reason,
+            text: text.isEmpty ? nil : text,
+            vehicle_id: vehicleId,
+            owner_id: userId
+        )
+        
+        let response = try await supabase
+            .from("expenses")
+            .insert([insertData])
+            .select()
+            .single()
+            .execute()
+        
+        print("📥 Response data: \(String(data: response.data, encoding: .utf8) ?? "N/A")")
+        
+        let decoder = JSONDecoder()
+        let expense = try decoder.decode(ExpenseData.self, from: response.data)
+        
+        print("✅ Expense saved successfully: \(expense.id ?? "N/A")")
+    } catch {
+        print("❌ Failed to save expense: \(error.localizedDescription)")
+        print("❌ Full error: \(error)")
+        throw error
+    }
+}
+
 
 struct DocumentInsert: Encodable {
     let vehicleid: String
