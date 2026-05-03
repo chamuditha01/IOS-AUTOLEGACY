@@ -19,6 +19,7 @@ struct ExpenseSubmissionView: View {
     @State private var selectedImage: UIImage?
     @State private var isRecognizingText = false
     @State private var showPhotoOptions = false
+    @State private var showSampleImages = false
     @State private var cameraAvailable = UIImagePickerController.isSourceTypeAvailable(.camera)
     
     var body: some View {
@@ -295,6 +296,9 @@ struct ExpenseSubmissionView: View {
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage, onImageSelected: recognizeTextFromImage)
         }
+        .sheet(isPresented: $showSampleImages) {
+            SampleBillImagePicker(selectedImage: $selectedImage, onImageSelected: recognizeTextFromImage)
+        }
         .actionSheet(isPresented: $showPhotoOptions) {
             ActionSheet(
                 title: Text("Select Photo Source"),
@@ -306,6 +310,9 @@ struct ExpenseSubmissionView: View {
                     },
                     .default(Text("Photo Library")) {
                         showImagePicker = true
+                    },
+                    .default(Text("Project Images")) {
+                        showSampleImages = true
                     },
                     .cancel()
                 ]
@@ -436,6 +443,91 @@ struct ExpenseSubmissionView: View {
                     isSaving = false
                     errorMessage = error.localizedDescription
                     showError = true
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sample Bill Image Picker
+
+struct SampleBillImagePicker: View {
+    @Binding var selectedImage: UIImage?
+    var onImageSelected: (UIImage) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        ZStack {
+            AppTheme.Gradients.auth.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Select Bill Image")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    Spacer().frame(width: 40)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 15)
+                
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Available Bill Images")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(.horizontal, 20)
+                        
+                        VStack(spacing: 12) {
+                            ForEach(BillImageManager.shared.getAllBundleImageNames(), id: \.self) { imageName in
+                                if let image = BillImageManager.shared.loadBillImage(named: imageName) {
+                                    Button(action: {
+                                        selectedImage = image
+                                        onImageSelected(image)
+                                        dismiss()
+                                    }) {
+                                        HStack(spacing: 12) {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 60, height: 60)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(imageName.replacingOccurrences(of: "_", with: " ").capitalized)
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                    .foregroundColor(.white)
+                                                
+                                                Text("Tap to select")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.white.opacity(0.6))
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(.white.opacity(0.5))
+                                        }
+                                        .padding(12)
+                                        .background(Color.white.opacity(0.05))
+                                        .cornerRadius(12)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                    }
                 }
             }
         }
