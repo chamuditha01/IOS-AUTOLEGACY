@@ -103,9 +103,11 @@ struct ExpenseSubmissionView: View {
                                     .background(Color.white.opacity(0.05))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.white.opacity(0.2), lineWidth: 1.5, dash: [5])
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .stroke(
+                                                Color.white.opacity(0.2),
+                                                style: StrokeStyle(lineWidth: 1.5, dash: [5])
+                                            )
+                                    )                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .onTapGesture {
                                         showPhotoOptions = true
                                     }

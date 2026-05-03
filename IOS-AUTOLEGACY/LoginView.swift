@@ -38,33 +38,9 @@ struct LoginView: View {
 
                     Spacer(minLength: 30 * scale)
 
-                    Button(action: {}) {
-                        Text("Firebase Login")
-                            .font(AppTheme.Typography.authButton(scale: scale))
-                            .foregroundColor(AppTheme.Colors.buttonText)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: AppTheme.Metrics.buttonHeight(scale: scale))
-                            .background(AppTheme.Colors.primaryButton)
-                            .clipShape(RoundedRectangle(cornerRadius: 22 * scale, style: .continuous))
-                    }
+                  
 
-                    Spacer(minLength: 26 * scale)
-
-                    HStack(spacing: 14 * scale) {
-                        Rectangle()
-                            .fill(AppTheme.Colors.line)
-                            .frame(height: AppTheme.Metrics.dividerHeight)
-
-                        Text("OR")
-                            .font(.system(size: 24 * scale, weight: .bold))
-                            .foregroundColor(AppTheme.Colors.line)
-                            .padding(.horizontal, 4 * scale)
-
-                        Rectangle()
-                            .fill(AppTheme.Colors.accentBlue)
-                            .frame(height: AppTheme.Metrics.dividerHeight)
-                    }
-
+                   
                     Spacer(minLength: 24 * scale)
 
                     Text("Mobile Number")
