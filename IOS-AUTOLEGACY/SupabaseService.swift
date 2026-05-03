@@ -386,6 +386,16 @@ struct ExpenseInsert: Encodable {
     let text: String?
     let vehicle_id: String
     let owner_id: Int
+    let bill_image_path: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case amount
+        case reason
+        case text
+        case vehicle_id
+        case owner_id
+        case bill_image_path
+    }
 }
 
 struct ExpenseData: Decodable {
@@ -395,19 +405,35 @@ struct ExpenseData: Decodable {
     let text: String?
     let vehicle_id: String
     let owner_id: Int
+    let bill_image_path: String?
     let created_at: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case amount
+        case reason
+        case text
+        case vehicle_id
+        case owner_id
+        case bill_image_path
+        case created_at
+    }
 }
 
-func saveExpense(amount: Double, reason: String, text: String, vehicleId: String, userId: Int) async throws {
+func saveExpense(amount: Double, reason: String, text: String, vehicleId: String, userId: Int, billImagePath: String? = nil) async throws {
     do {
         print("📱 Saving expense - amount: \(amount), vehicleId: \(vehicleId), userId: \(userId)")
+        if let imagePath = billImagePath {
+            print("📁 Bill image path: \(imagePath)")
+        }
         
         let insertData = ExpenseInsert(
             amount: amount,
             reason: reason.isEmpty ? nil : reason,
             text: text.isEmpty ? nil : text,
             vehicle_id: vehicleId,
-            owner_id: userId
+            owner_id: userId,
+            bill_image_path: billImagePath
         )
         
         let response = try await supabase
