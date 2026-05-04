@@ -482,11 +482,12 @@ struct BundleBillImagePicker: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 15)
                 
-                        Text("Documents Folder Images")
+                ScrollView { // Added ScrollView to handle multiple images
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Available Bill Images")
+                        Text("Documents Folder Images")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
+                        
                         if bundleImages.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("No images found in the bundled Documents folder.")
@@ -500,7 +501,6 @@ struct BundleBillImagePicker: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color.white.opacity(0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .padding(.horizontal, 20)
                         } else {
                             VStack(spacing: 12) {
                                 ForEach(bundleImages, id: \.name) { item in
@@ -512,7 +512,7 @@ struct BundleBillImagePicker: View {
                                         HStack(spacing: 12) {
                                             Image(uiImage: item.image)
                                                 .resizable()
-                                                .scaledToFit()
+                                                .scaledToFill() // Changed to Fill for a better thumbnail look
                                                 .frame(width: 60, height: 60)
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                             
@@ -536,18 +536,20 @@ struct BundleBillImagePicker: View {
                                         .cornerRadius(12)
                                     }
                                 }
-                                    }
-                            .padding(.horizontal, 20)
+                            }
                         }
                     }
+                    .padding(.horizontal, 20)
                 }
             }
         }
         .onAppear {
+            // This is now correctly attached to the ZStack inside the body
             bundleImages = BillImageManager.shared.getAvailableBillImages()
         }
     }
 }
+
 
 // MARK: - Image Picker
 
@@ -594,7 +596,7 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
     }
 }
-}
+
 
 // MARK: - Preview
 

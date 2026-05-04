@@ -448,11 +448,10 @@ func saveExpense(amount: Double, reason: String, text: String, vehicleId: String
         let decoder = JSONDecoder()
         let expense = try decoder.decode(ExpenseData.self, from: response.data)
         
-<<<<<<< HEAD
-        print("✅ Expense saved successfully: \(String(describing: expense.id ?? 0))")
-=======
+
+
         print("✅ Expense saved successfully: \(expense.id.map(String.init) ?? "N/A")")
->>>>>>> dev
+
     } catch {
         print("❌ Failed to save expense: \(error.localizedDescription)")
         print("❌ Full error: \(error)")
