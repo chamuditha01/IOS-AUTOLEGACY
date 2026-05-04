@@ -1,5 +1,7 @@
 import SwiftUI
 import Charts
+import Supabase
+import PostgREST
 
 struct VehicleProfileView: View {
     @State private var vehiclesWithStats: [(vehicle: VehicleData, stats: VehicleStatData?)] = []
@@ -549,7 +551,8 @@ private struct MonthlyExpensePoint: Identifiable {
     let total: Double
 }
 
-private struct ReasonExpensePoint {
+private struct ReasonExpensePoint: Identifiable {
+    let id = UUID()
     let reason: String
     let total: Double
 }
