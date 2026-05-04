@@ -461,12 +461,14 @@ func saveExpense(amount: Double, reason: String, text: String, vehicleId: String
 
 
 struct DocumentInsert: Encodable {
+    let id: String
     let vehicleid: String
     let doctype: String
     let expirydate: String
     let filepath: String
     
     enum CodingKeys: String, CodingKey {
+        case id
         case vehicleid
         case doctype
         case expirydate
@@ -494,7 +496,13 @@ func saveDocument(vehicleId: String, doctype: String, expirydate: String, filepa
     do {
         print("📱 Saving document - type: \(doctype), vehicleId: \(vehicleId), filepath: \(filepath)")
         
-        let insertData = DocumentInsert(vehicleid: vehicleId, doctype: doctype, expirydate: expirydate, filepath: filepath)
+        let insertData = DocumentInsert(
+            id: UUID().uuidString,
+            vehicleid: vehicleId,
+            doctype: doctype,
+            expirydate: expirydate,
+            filepath: filepath
+        )
         
         let response = try await supabase
             .from("document")
