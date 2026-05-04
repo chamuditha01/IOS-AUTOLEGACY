@@ -378,6 +378,15 @@ struct ExpenseSubmissionView: View {
                     
                     DispatchQueue.main.async {
                         extractedText = recognizedText
+
+                        if let parsedAmount = extractAmount(from: recognizedText), amount.isEmpty {
+                            amount = parsedAmount
+                        }
+
+                        if let parsedReason = extractReason(from: recognizedText), reason.isEmpty {
+                            reason = parsedReason
+                        }
+
                         isRecognizingText = false
                     }
                 }
@@ -394,6 +403,93 @@ struct ExpenseSubmissionView: View {
                 }
             }
         }
+    }
+
+    private func extractAmount(from text: String) -> String? {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        let priorityKeywords = [
+            "grand total",
+            "total amount",
+            "amount due",
+            "net total",
+            "bill total",
+            "balance due",
+            "total"
+        ]
+
+        func matchAmount(in line: String) -> String? {
+            let pattern = #"(?:₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+            let range = NSRange(line.startIndex..., in: line)
+            guard let match = regex.matches(in: line, options: [], range: range).last,
+                  let captureRange = Range(match.range(at: 1), in: line) else {
+                return nil
+            }
+            return String(line[captureRange])
+                .replacingOccurrences(of: ",", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        for keyword in priorityKeywords {
+            if let line = lines.first(where: { $0.lowercased().contains(keyword) }), let amount = matchAmount(in: line) {
+                return amount
+            }
+        }
+
+        for line in lines.reversed() {
+            if let amount = matchAmount(in: line) {
+                return amount
+            }
+        }
+
+        return nil
+    }
+
+    private func extractReason(from text: String) -> String? {
+        let lowerText = text.lowercased()
+
+        let keywordMap: [(keyword: String, value: String)] = [
+            ("fuel", "Fuel"),
+            ("petrol", "Fuel"),
+            ("diesel", "Fuel"),
+            ("service", "Service"),
+            ("repair", "Repair"),
+            ("maintenance", "Maintenance"),
+            ("parking", "Parking"),
+            ("toll", "Toll"),
+            ("wash", "Vehicle Wash"),
+            ("cleaning", "Vehicle Wash"),
+            ("tyre", "Tyre Replacement"),
+            ("tire", "Tyre Replacement"),
+            ("parts", "Parts"),
+            ("battery", "Battery")
+        ]
+
+        for entry in keywordMap {
+            if lowerText.contains(entry.keyword) {
+                return entry.value
+            }
+        }
+
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        let ignoredKeywords = ["invoice", "bill", "receipt", "date", "total", "subtotal", "amount", "tax", "balance"]
+
+        if let line = lines.first(where: { line in
+            let lower = line.lowercased()
+            return lower.count > 3 && !ignoredKeywords.contains(where: { lower.contains($0) })
+        }) {
+            return String(line.prefix(1)).uppercased() + String(line.dropFirst()).lowercased()
+        }
+
+        return nil
     }
 
     private func submitExpense() {
