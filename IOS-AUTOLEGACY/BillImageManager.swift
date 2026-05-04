@@ -10,9 +10,33 @@ class BillImageManager {
         Bundle.main.resourceURL?.appendingPathComponent(folderName, isDirectory: true)
     }
     
+    /// Check if the Documents folder exists in the bundle
+    var isBundledFolderAvailable: Bool {
+        guard let folderURL = bundleFolderURL else { return false }
+        return FileManager.default.fileExists(atPath: folderURL.path)
+    }
+    
+    /// Get setup instructions for adding Documents folder
+    var setupInstructions: String {
+        """
+        To add bill images:
+        
+        1. Create a folder named "Documents" in your Xcode project
+        2. Add your bill images (.png, .jpg, .jpeg, .heic) to that folder
+        3. In Xcode: Right-click project → Add Files
+        4. Select the Documents folder
+        5. Check "Copy items if needed" and "Create folder references"
+        6. Ensure it's added to the IOS-AUTOLEGACY target
+        7. Rebuild and run
+        """
+    }
+    
     /// Get all available bill images from the bundled Documents folder.
     func getAvailableBillImages() -> [(name: String, image: UIImage)] {
-        guard let folderURL = bundleFolderURL else { return [] }
+        guard let folderURL = bundleFolderURL else {
+            print("⚠️ Documents folder not found in bundle. Add it via Xcode.")
+            return []
+        }
 
         do {
             let files = try FileManager.default.contentsOfDirectory(
@@ -21,13 +45,16 @@ class BillImageManager {
                 options: [.skipsHiddenFiles]
             )
 
-            return files
+            let images = files
                 .filter { supportedExtensions.contains($0.pathExtension.lowercased()) }
                 .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
                 .compactMap { url in
                     guard let image = UIImage(contentsOfFile: url.path) else { return nil }
                     return (name: url.deletingPathExtension().lastPathComponent, image: image)
                 }
+            
+            print("✅ Loaded \(images.count) images from Documents folder")
+            return images
         } catch {
             print("❌ Failed to scan bundled Documents folder: \(error)")
             return []

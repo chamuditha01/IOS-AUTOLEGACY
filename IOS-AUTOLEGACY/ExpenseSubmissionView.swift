@@ -482,23 +482,39 @@ struct BundleBillImagePicker: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 15)
                 
-                        Text("Documents Folder Images")
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Available Bill Images")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
+                        if BillImageManager.shared.isBundledFolderAvailable {
+                            Text("Available Bill Images")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(.horizontal, 20)
+                        }
+                        
                         if bundleImages.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("No images found in the bundled Documents folder.")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.white)
-                                Text("Add bill images to a folder named Documents in your Xcode project, then add that folder as a folder reference.")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.7))
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.orange)
+                                    
+                                    Text("Documents Folder Not Found")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.orange)
+                                }
+                                
+                                Text(BillImageManager.shared.setupInstructions)
+                                    .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .lineSpacing(3)
                             }
-                            .padding(20)
+                            .padding(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.05))
+                            .background(Color.orange.opacity(0.15))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                            )
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .padding(.horizontal, 20)
                         } else {
@@ -536,10 +552,13 @@ struct BundleBillImagePicker: View {
                                         .cornerRadius(12)
                                     }
                                 }
-                                    }
+                            }
                             .padding(.horizontal, 20)
                         }
+                        
+                        Spacer()
                     }
+                    .padding(.vertical, 20)
                 }
             }
         }
@@ -593,7 +612,6 @@ struct ImagePicker: UIViewControllerRepresentable {
             parent.presentationMode.wrappedValue.dismiss()
         }
     }
-}
 }
 
 // MARK: - Preview
