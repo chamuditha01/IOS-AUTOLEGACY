@@ -375,6 +375,14 @@ struct DocumentSubmissionView: View {
                         filepath: resolveDocumentFilePath()
                     )
                 }
+
+                let vehicleName = "\(vehicle.make ?? "Unknown") \(vehicle.model ?? "Vehicle")"
+                let notificationTitle = documentId != nil ? "Document Updated" : "Document Added"
+                let notificationBody = "Type: \(documentType.capitalized) | Vehicle: \(vehicleName) | Expiry: \(expiryDateString)"
+                await NotificationManager.shared.scheduleDocumentNotification(
+                    title: notificationTitle,
+                    details: notificationBody
+                )
                 
                 DispatchQueue.main.async {
                     isLoading = false
