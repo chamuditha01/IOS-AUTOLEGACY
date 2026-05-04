@@ -3,33 +3,61 @@ import SwiftUI
 
 class BillImageManager {
     static let shared = BillImageManager()
+    private let folderName = "Documents"
+    private let supportedExtensions = ["png", "jpg", "jpeg", "heic"]
     
-    /// Get all available bill images from the bundle
-    func getAvailableBillImages() -> [(name: String, image: UIImage?)] {
-        let imageNames = ["bill_sample_1", "bill_sample_2", "bill_sample_3", "bill_receipt", "bill_invoice"]
-        
-        return imageNames.compactMap { name in
-            if let image = UIImage(named: name) {
-                return (name: name, image: image)
-            }
-            return nil
+    private var bundleFolderURL: URL? {
+        Bundle.main.resourceURL?.appendingPathComponent(folderName, isDirectory: true)
+    }
+    
+    /// Get all available bill images from the bundled Documents folder.
+    func getAvailableBillImages() -> [(name: String, image: UIImage)] {
+        guard let folderURL = bundleFolderURL else { return [] }
+
+        do {
+            let files = try FileManager.default.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+
+            return files
+                .filter { supportedExtensions.contains($0.pathExtension.lowercased()) }
+                .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
+                .compactMap { url in
+                    guard let image = UIImage(contentsOfFile: url.path) else { return nil }
+                    return (name: url.deletingPathExtension().lastPathComponent, image: image)
+                }
+        } catch {
+            print("❌ Failed to scan bundled Documents folder: \(error)")
+            return []
         }
     }
     
-    /// Load a bill image by name
+    /// Load a bill image by filename from the bundled Documents folder.
     func loadBillImage(named name: String) -> UIImage? {
-        return UIImage(named: name)
+        guard let folderURL = bundleFolderURL else { return nil }
+
+        let exactMatchCandidates = supportedExtensions.flatMap { [folderURL.appendingPathComponent(name).appendingPathExtension($0)] }
+        if let existingURL = exactMatchCandidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+            return UIImage(contentsOfFile: existingURL.path)
+        }
+
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: folderURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        guard let matchedURL = files.first(where: { $0.deletingPathExtension().lastPathComponent == name }) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: matchedURL.path)
     }
-    
-    /// Get all image names in Assets (for demonstration)
+
+    /// Get the file names available in the bundled Documents folder.
     func getAllBundleImageNames() -> [String] {
-        // This lists common bill-related image names that should be in Assets.xcassets
-        return [
-            "bill_sample_1",
-            "bill_sample_2",
-            "bill_sample_3",
-            "bill_receipt",
-            "bill_invoice"
-        ]
+        getAvailableBillImages().map { $0.name }
     }
 }

@@ -297,7 +297,7 @@ struct ExpenseSubmissionView: View {
             ImagePicker(image: $selectedImage, onImageSelected: recognizeTextFromImage)
         }
         .sheet(isPresented: $showSampleImages) {
-            SampleBillImagePicker(selectedImage: $selectedImage, onImageSelected: recognizeTextFromImage)
+            BundleBillImagePicker(selectedImage: $selectedImage, onImageSelected: recognizeTextFromImage)
         }
         .actionSheet(isPresented: $showPhotoOptions) {
             ActionSheet(
@@ -449,12 +449,13 @@ struct ExpenseSubmissionView: View {
     }
 }
 
-// MARK: - Sample Bill Image Picker
+// MARK: - Bundle Bill Image Picker
 
-struct SampleBillImagePicker: View {
+struct BundleBillImagePicker: View {
     @Binding var selectedImage: UIImage?
     var onImageSelected: (UIImage) -> Void
     @Environment(\.dismiss) var dismiss
+    @State private var bundleImages: [(name: String, image: UIImage)] = []
     
     var body: some View {
         ZStack {
@@ -481,30 +482,42 @@ struct SampleBillImagePicker: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 15)
                 
-                ScrollView(.vertical, showsIndicators: false) {
+                        Text("Documents Folder Images")
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Available Bill Images")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
+                        if bundleImages.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("No images found in the bundled Documents folder.")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text("Add bill images to a folder named Documents in your Xcode project, then add that folder as a folder reference.")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .padding(.horizontal, 20)
-                        
-                        VStack(spacing: 12) {
-                            ForEach(BillImageManager.shared.getAllBundleImageNames(), id: \.self) { imageName in
-                                if let image = BillImageManager.shared.loadBillImage(named: imageName) {
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(bundleImages, id: \.name) { item in
                                     Button(action: {
-                                        selectedImage = image
-                                        onImageSelected(image)
+                                        selectedImage = item.image
+                                        onImageSelected(item.image)
                                         dismiss()
                                     }) {
                                         HStack(spacing: 12) {
-                                            Image(uiImage: image)
+                                            Image(uiImage: item.image)
                                                 .resizable()
                                                 .scaledToFit()
                                                 .frame(width: 60, height: 60)
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                             
                                             VStack(alignment: .leading, spacing: 4) {
-                                                Text(imageName.replacingOccurrences(of: "_", with: " ").capitalized)
+                                                Text(item.name.replacingOccurrences(of: "_", with: " ").capitalized)
                                                     .font(.system(size: 14, weight: .semibold))
                                                     .foregroundColor(.white)
                                                 
@@ -523,13 +536,15 @@ struct SampleBillImagePicker: View {
                                         .cornerRadius(12)
                                     }
                                 }
-                            }
+                                    }
+                            .padding(.horizontal, 20)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
                     }
                 }
             }
+        }
+        .onAppear {
+            bundleImages = BillImageManager.shared.getAvailableBillImages()
         }
     }
 }
@@ -578,6 +593,7 @@ struct ImagePicker: UIViewControllerRepresentable {
             parent.presentationMode.wrappedValue.dismiss()
         }
     }
+}
 }
 
 // MARK: - Preview
