@@ -18,9 +18,7 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(AppTheme.Gradients.auth.ignoresSafeArea())
                 case .profile:
-                    Text("Profile") // Placeholder for profile
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppTheme.Gradients.auth.ignoresSafeArea())
+                    VehicleProfileView()
                 case .setting:
                     SettingsView(onLogout: onLogout)
                 }
