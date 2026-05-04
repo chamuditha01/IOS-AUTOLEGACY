@@ -56,6 +56,8 @@ struct DigitalVaultView: View {
     @State private var showDocTypeSelection = false
     @State private var selectedDocType: String?
     @State private var showSubmissionView = false
+    @State private var selectedDocument: VehicleDocument?
+    @State private var showEditView = false
     
     let documentTypes: [(name: String, image: String)] = [
         ("insurance", "https://i.ibb.co/yjryBHR/Gemini-Generated-Image-b5g2ynb5g2ynb5g2.png"),
@@ -109,7 +111,13 @@ struct DigitalVaultView: View {
                                 .padding(.top, 50)
                         } else {
                             ForEach(documents) { doc in
-                                documentCard(for: doc)
+                                Button(action: {
+                                    selectedDocument = doc
+                                    showEditView = true
+                                }) {
+                                    documentCard(for: doc)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                     }
@@ -156,6 +164,26 @@ struct DigitalVaultView: View {
                 DocumentSubmissionView(
                     documentType: docType,
                     documentImage: docInfo.image,
+                    documentId: nil,
+                    existingVehicleId: nil,
+                    existingExpiryDate: nil,
+                    onSuccess: {
+                        Task {
+                            await fetchDocuments()
+                        }
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: $showEditView) {
+            if let doc = selectedDocument,
+               let vehicleId = doc.vehicleid?.uuidString {
+                DocumentSubmissionView(
+                    documentType: doc.doctype ?? "Document",
+                    documentImage: doc.filepath ?? "",
+                    documentId: doc.id.uuidString,
+                    existingVehicleId: vehicleId,
+                    existingExpiryDate: doc.expirydate,
                     onSuccess: {
                         Task {
                             await fetchDocuments()

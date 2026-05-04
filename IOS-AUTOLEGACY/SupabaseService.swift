@@ -476,6 +476,20 @@ struct DocumentInsert: Encodable {
     }
 }
 
+struct DocumentUpdate: Encodable {
+    let vehicleid: String
+    let doctype: String
+    let expirydate: String
+    let filepath: String
+    
+    enum CodingKeys: String, CodingKey {
+        case vehicleid
+        case doctype
+        case expirydate
+        case filepath
+    }
+}
+
 struct DocumentData: Decodable {
     let id: String?
     let vehicleid: String
@@ -558,6 +572,56 @@ func fetchVehiclesForUser(userId: Int) async throws -> [(vehicle: VehicleData, s
         return vehiclesWithStats
     } catch {
         print("❌ Failed to fetch vehicles: \(error)")
+        throw error
+    }
+}
+
+func updateDocument(id: String, vehicleId: String, doctype: String, expirydate: String, filepath: String) async throws {
+    do {
+        print("📝 Updating document with ID: \(id)")
+        
+        let updateData = DocumentUpdate(
+            vehicleid: vehicleId,
+            doctype: doctype,
+            expirydate: expirydate,
+            filepath: filepath
+        )
+        
+        let response = try await supabase
+            .from("document")
+            .update(updateData)
+            .eq("id", value: id)
+            .select()
+            .single()
+            .execute()
+        
+        print("📥 Update response: \(String(data: response.data, encoding: .utf8) ?? "N/A")")
+        
+        let decoder = JSONDecoder()
+        let document = try decoder.decode(DocumentData.self, from: response.data)
+        
+        print("✅ Document updated successfully: \(document.id ?? "N/A")")
+    } catch {
+        print("❌ Failed to update document: \(error.localizedDescription)")
+        print("❌ Full error: \(error)")
+        throw error
+    }
+}
+
+func deleteDocument(id: String) async throws {
+    do {
+        print("🗑️ Deleting document with ID: \(id)")
+        
+        _ = try await supabase
+            .from("document")
+            .delete()
+            .eq("id", value: id)
+            .execute()
+        
+        print("✅ Document deleted successfully: \(id)")
+    } catch {
+        print("❌ Failed to delete document: \(error.localizedDescription)")
+        print("❌ Full error: \(error)")
         throw error
     }
 }

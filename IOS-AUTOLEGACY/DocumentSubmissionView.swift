@@ -7,11 +7,16 @@ struct DocumentSubmissionView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showSuccess = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
     @State private var selectedVehicle: VehicleData?
     @State private var vehicles: [VehicleData] = []
     
     let documentType: String
     let documentImage: String
+    let documentId: String?
+    let existingVehicleId: String?
+    let existingExpiryDate: String?
     let onSuccess: () -> Void
     @Environment(\.dismiss) var dismiss
     
@@ -40,14 +45,25 @@ struct DocumentSubmissionView: View {
                     
                     Spacer()
                     
-                    Text("Add \(documentType.capitalized)")
+                    Text("\(documentId != nil ? "Edit" : "Add") \(documentType.capitalized)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                     
                     Spacer()
                     
-                    Spacer()
-                        .frame(width: 40)
+                    if documentId != nil {
+                        Button(action: { showDeleteConfirm = true }) {
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.red)
+                                .frame(width: 40, height: 40)
+                                .background(Color.red.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                    } else {
+                        Spacer()
+                            .frame(width: 40)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -159,10 +175,10 @@ struct DocumentSubmissionView: View {
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                         .frame(width: 20, height: 20)
                                 } else {
-                                    Image(systemName: "checkmark.circle.fill")
+                                    Image(systemName: documentId != nil ? "pencil.circle.fill" : "checkmark.circle.fill")
                                 }
                                 
-                                Text(isLoading ? "Saving..." : "Save Document")
+                                Text(isLoading ? "\(documentId != nil ? "Updating" : "Saving")..." : "\(documentId != nil ? "Update" : "Save") Document")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                             }
                             .frame(maxWidth: .infinity)
@@ -192,10 +208,29 @@ struct DocumentSubmissionView: View {
                 dismiss()
             }
         } message: {
-            Text("Document saved successfully!")
+            Text("Document \(documentId != nil ? "updated" : "saved") successfully!")
+        }
+        .alert("Delete Document", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                handleDelete()
+            }
+        } message: {
+            Text("Are you sure you want to delete this document? This action cannot be undone.")
         }
         .task {
             await loadVehicles()
+            if let vehicleId = existingVehicleId, let expiryStr = existingExpiryDate {
+                // Load existing data for edit mode
+                if let vehicle = vehicles.first(where: { $0.id == vehicleId }) {
+                    selectedVehicle = vehicle
+                }
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                if let date = formatter.date(from: expiryStr) {
+                    expiryDate = date
+                }
+            }
         }
     }
     
@@ -240,12 +275,24 @@ struct DocumentSubmissionView: View {
         
         Task {
             do {
-                try await saveDocument(
-                    vehicleId: vehicle.id,
-                    doctype: documentType,
-                    expirydate: expiryDateString,
-                    filepath: documentImage
-                )
+                if let docId = documentId {
+                    // Update mode
+                    try await updateDocument(
+                        id: docId,
+                        vehicleId: vehicle.id,
+                        doctype: documentType,
+                        expirydate: expiryDateString,
+                        filepath: documentImage
+                    )
+                } else {
+                    // Create mode
+                    try await saveDocument(
+                        vehicleId: vehicle.id,
+                        doctype: documentType,
+                        expirydate: expiryDateString,
+                        filepath: documentImage
+                    )
+                }
                 
                 DispatchQueue.main.async {
                     isLoading = false
@@ -260,6 +307,29 @@ struct DocumentSubmissionView: View {
             }
         }
     }
+    
+    private func handleDelete() {
+        guard let docId = documentId else { return }
+        
+        isDeleting = true
+        
+        Task {
+            do {
+                try await deleteDocument(id: docId)
+                
+                DispatchQueue.main.async {
+                    isDeleting = false
+                    showSuccess = true
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isDeleting = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
+    }
 }
 
 struct DocumentSubmissionView_Previews: PreviewProvider {
@@ -267,6 +337,9 @@ struct DocumentSubmissionView_Previews: PreviewProvider {
         DocumentSubmissionView(
             documentType: "insurance",
             documentImage: "https://i.ibb.co/yjryBHR/Gemini-Generated-Image-b5g2ynb5g2ynb5g2.png",
+            documentId: nil,
+            existingVehicleId: nil,
+            existingExpiryDate: nil,
             onSuccess: {}
         )
     }
