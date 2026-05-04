@@ -46,43 +46,6 @@ class BillImageManager {
             UIColor(red: 0.2, green: 0.4, blue: 0.7, alpha: 1).setFill()
             context.fill(headerRect)
             
-            // Title
-            let titleAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.boldSystemFont(ofSize: 18),
-                .foregroundColor: UIColor.white
-            ]
-            let titleString = title as NSString
-            titleString.draw(in: CGRect(x: 20, y: 20, width: size.width - 40, height: 20), withAttributes: titleAttributes)
-            
-                }
-            } catch {
-                print("⚠️ Failed to scan bundled Documents folder: \(error)")
-            }
-        }
-        
-        // Fallback: Generate test bill images
-        print("📋 Generating test bill images (Documents folder not found)")
-        return [
-            (name: "test_bill_1", image: generateTestBillImage(title: "AUTO REPAIR BILL #001")),
-            (name: "test_bill_2", image: generateTestBillImage(title: "SERVICE INVOICE #002")),
-            (name: "test_bill_3", image: generateTestBillImage(title: "MAINTENANCE BILL #003"))
-        ]
-    }
-        /// Get setup instructions for adding Documents folder
-        var setupInstructions: String {
-            """
-            To add real bill images:
-        
-            1. Create a folder named "Documents" in your Xcode project
-            2. Add your bill images (.png, .jpg, .jpeg, .heic) to that folder
-            3. In Xcode: Right-click project → Add Files
-            4. Select the Documents folder
-            5. Check "Copy items if needed" and "Create folder references"
-            6. Ensure it's added to the IOS-AUTOLEGACY target
-            7. Rebuild and run
-            """
-        }
-    
         /// Get all available bill images from the bundled Documents folder, or load from Assets
         func getAvailableBillImages() -> [(name: String, image: UIImage)] {
             // Try to load from bundled Documents folder first
@@ -111,7 +74,7 @@ class BillImageManager {
                 }
             }
         
-            // Fallback: Load test bill images from Assets
+            if let image = UIImage(named: "bill_sample_1") {
             print("📋 Loading test bill images from Assets")
             var assets: [(name: String, image: UIImage)] = []
             if let image1 = UIImage(named: "bill_sample_1") {
