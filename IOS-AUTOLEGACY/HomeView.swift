@@ -1,4 +1,6 @@
 import SwiftUI
+import Supabase
+import PostgREST
 
 struct HomeView: View {
     @State private var selectedVehicleIndex = 0
@@ -7,6 +9,9 @@ struct HomeView: View {
     @State private var showAlertView = false
     @State private var showFuelTracking = false
     @State private var showExpenseTracking = false
+    @State private var alertTitle: String = ""
+    @State private var alertMessage: String = ""
+    @State private var alertCount: Int = 0
 
     private let serviceItems: [ServiceItem] = [
         .init(title: "Expenses", icon: "dollarsign.circle.fill"),
@@ -111,12 +116,61 @@ struct HomeView: View {
                         )
                     }
                     isLoading = false
+                    Task { await loadAlertsForVehicles() }
                 }
             } catch {
                 print("❌ Error fetching vehicles: \(error)")
                 DispatchQueue.main.async {
                     isLoading = false
                 }
+            }
+        }
+    }
+
+    private func loadAlertsForVehicles() async {
+        alertTitle = ""
+        alertMessage = ""
+        alertCount = 0
+
+        do {
+            guard !vehicles.isEmpty else { return }
+
+            // compute date threshold (7 days)
+            let thresholdDate = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            let thresholdString = fmt.string(from: thresholdDate)
+
+            // fetch documents expiring on or before threshold
+            let docs: [HomeDocument] = try await supabase
+                .from("document")
+                .select("id, vehicleid, doctype, expirydate")
+                .lte("expirydate", value: thresholdString)
+                .execute()
+                .value
+
+            let vehicleIds = Set(vehicles.map { $0.vin })
+            let relevant = docs.filter { vehicleIds.contains($0.vehicleid) }
+
+            await MainActor.run {
+                alertCount = relevant.count
+                if let nearest = relevant.sorted(by: { (a, b) in
+                    let da = fmt.date(from: a.expirydate) ?? Date.distantFuture
+                    let db = fmt.date(from: b.expirydate) ?? Date.distantFuture
+                    return da < db
+                }).first, let expDate = fmt.date(from: nearest.expirydate) {
+                    let days = Calendar.current.dateComponents([.day], from: Date(), to: expDate).day ?? 0
+                    alertTitle = nearest.doctype.uppercased() + " EXPIRING"
+                    alertMessage = "\(nearest.doctype.capitalized) expiring in \(max(days,0)) days"
+                } else {
+                    alertTitle = "No Alerts"
+                    alertMessage = "You're all set for the next 7 days"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                alertTitle = "Alerts Unavailable"
+                alertMessage = "Failed to load alerts"
             }
         }
     }
@@ -387,10 +441,10 @@ struct HomeView: View {
                     .foregroundColor(Color(red: 0.45, green: 0.04, blue: 0.06))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("DOCUMENT ALERT")
+                    Text(alertTitle.isEmpty ? "DOCUMENT ALERT" : alertTitle)
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.45, green: 0.04, blue: 0.06))
-                    Text("Insurance Expiring in 2 days")
+                    Text(alertMessage.isEmpty ? "No current alerts" : alertMessage)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(Color(red: 0.45, green: 0.04, blue: 0.06))
                 }
@@ -429,6 +483,13 @@ private struct VehicleMetric: Identifiable {
     let title: String
     let value: String
     let icon: String
+}
+
+private struct HomeDocument: Decodable {
+    let id: String
+    let vehicleid: String
+    let doctype: String
+    let expirydate: String
 }
 
 #Preview {
