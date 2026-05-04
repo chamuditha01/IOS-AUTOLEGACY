@@ -10,28 +10,115 @@ class BillImageManager {
         Bundle.main.resourceURL?.appendingPathComponent(folderName, isDirectory: true)
     }
     
-    /// Get all available bill images from the bundled Documents folder.
-    func getAvailableBillImages() -> [(name: String, image: UIImage)] {
-        guard let folderURL = bundleFolderURL else { return [] }
-
-        do {
-            let files = try FileManager.default.contentsOfDirectory(
-                at: folderURL,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )
-
-            return files
-                .filter { supportedExtensions.contains($0.pathExtension.lowercased()) }
-                .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
-                .compactMap { url in
-                    guard let image = UIImage(contentsOfFile: url.path) else { return nil }
-                    return (name: url.deletingPathExtension().lastPathComponent, image: image)
-                }
-        } catch {
-            print("❌ Failed to scan bundled Documents folder: \(error)")
-            return []
+    /// Check if the Documents folder exists in the bundle
+    var isBundledFolderAvailable: Bool {
+        guard let folderURL = bundleFolderURL else { return false }
+        return FileManager.default.fileExists(atPath: folderURL.path)
+    }
+    
+    /// Get setup instructions for adding Documents folder
+    var setupInstructions: String {
+        """
+        To add real bill images:
+        
+        1. Create a folder named "Documents" in your Xcode project
+        2. Add your bill images (.png, .jpg, .jpeg, .heic) to that folder
+        3. In Xcode: Right-click project → Add Files
+        4. Select the Documents folder
+        5. Check "Copy items if needed" and "Create folder references"
+        6. Ensure it's added to the IOS-AUTOLEGACY target
+        7. Rebuild and run
+        """
+    }
+    
+    /// Generate a test bill image with placeholder content
+    private func generateTestBillImage(title: String) -> UIImage {
+        let size = CGSize(width: 400, height: 500)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        let image = renderer.image { context in
+            // White background
+            UIColor.white.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            
+            // Header
+            let headerRect = CGRect(x: 0, y: 0, width: size.width, height: 60)
+            UIColor(red: 0.2, green: 0.4, blue: 0.7, alpha: 1).setFill()
+            context.fill(headerRect)
+            
+            // Title
+            let titleAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 18),
+                .foregroundColor: UIColor.white
+            ]
+            let titleString = title as NSString
+            titleString.draw(in: CGRect(x: 20, y: 20, width: size.width - 40, height: 20), withAttributes: titleAttributes)
+            
+            // Bill content
+            let contentAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 12),
+                .foregroundColor: UIColor.darkGray
+            ]
+            
+            let sampleText = """
+            BILL INVOICE
+            
+            Item 1: Service Charge    Rs. 2,500
+            Item 2: Parts              Rs. 5,000
+            Item 3: Labour             Rs. 3,000
+            
+            Subtotal                   Rs. 10,500
+            Tax (10%)                  Rs. 1,050
+            
+            TOTAL                      Rs. 11,550
+            
+            Date: \(Date().formatted(date: .abbreviated, time: .omitted))
+            
+            Thank you for your business!
+            """
+            
+            let contentString = sampleText as NSString
+            contentString.draw(in: CGRect(x: 20, y: 90, width: size.width - 40, height: size.height - 110), withAttributes: contentAttributes)
         }
+        
+        return image
+    }
+    
+    /// Get all available bill images from the bundled Documents folder, or generate test images
+    func getAvailableBillImages() -> [(name: String, image: UIImage)] {
+        // Try to load from bundled Documents folder first
+        if let folderURL = bundleFolderURL {
+            do {
+                let files = try FileManager.default.contentsOfDirectory(
+                    at: folderURL,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )
+
+                let images = files
+                    .filter { supportedExtensions.contains($0.pathExtension.lowercased()) }
+                    .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
+                    .compactMap { url in
+                        guard let image = UIImage(contentsOfFile: url.path) else { return nil }
+                        return (name: url.deletingPathExtension().lastPathComponent, image: image)
+                    }
+                
+                if !images.isEmpty {
+                    print("✅ Loaded \(images.count) real images from Documents folder")
+                    return images
+                }
+            } catch {
+                print("⚠️ Failed to scan bundled Documents folder: \(error)")
+            }
+        }
+        
+        // Fallback: Generate test bill images
+        print("📋 Generating test bill images (Documents folder not found)")
+        return [
+            (name: "test_bill_1", image: generateTestBillImage(title: "AUTO REPAIR BILL #001")),
+            (name: "test_bill_2", image: generateTestBillImage(title: "SERVICE INVOICE #002")),
+            (name: "test_bill_3", image: generateTestBillImage(title: "MAINTENANCE BILL #003"))
+        ]
     }
     
     /// Load a bill image by filename from the bundled Documents folder.

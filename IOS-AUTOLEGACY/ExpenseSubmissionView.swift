@@ -484,57 +484,57 @@ struct BundleBillImagePicker: View {
                 
                 ScrollView { // Added ScrollView to handle multiple images
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Documents Folder Images")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
-                        
-                        if bundleImages.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("No images found in the bundled Documents folder.")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.white)
-                                Text("Add bill images to a folder named Documents in your Xcode project, then add that folder as a folder reference.")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.7))
+                        if !BillImageManager.shared.isBundledFolderAvailable {
+                            HStack(spacing: 8) {
+                                Image(systemName: "lightbulb.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.blue)
+                                Text("Test Images (Add Documents folder for real images)")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.blue)
                             }
-                            .padding(20)
+                            .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .background(Color.blue.opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         } else {
-                            VStack(spacing: 12) {
-                                ForEach(bundleImages, id: \.name) { item in
-                                    Button(action: {
-                                        selectedImage = item.image
-                                        onImageSelected(item.image)
-                                        dismiss()
-                                    }) {
-                                        HStack(spacing: 12) {
-                                            Image(uiImage: item.image)
-                                                .resizable()
-                                                .scaledToFill() // Changed to Fill for a better thumbnail look
-                                                .frame(width: 60, height: 60)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            Text("Available Bill Images")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        
+                        VStack(spacing: 12) {
+                            ForEach(bundleImages, id: \.name) { item in
+                                Button(action: {
+                                    selectedImage = item.image
+                                    onImageSelected(item.image)
+                                    dismiss()
+                                }) {
+                                    HStack(spacing: 12) {
+                                        Image(uiImage: item.image)
+                                            .resizable()
+                                            .scaledToFill() // Changed to Fill for a better thumbnail look
+                                            .frame(width: 60, height: 60)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(item.name.replacingOccurrences(of: "_", with: " ").capitalized)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundColor(.white)
                                             
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(item.name.replacingOccurrences(of: "_", with: " ").capitalized)
-                                                    .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundColor(.white)
-                                                
-                                                Text("Tap to select")
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(.white.opacity(0.6))
-                                            }
-                                            
-                                            Spacer()
-                                            
-                                            Image(systemName: "chevron.right")
-                                                .foregroundColor(.white.opacity(0.5))
+                                            Text("Tap to select")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.white.opacity(0.6))
                                         }
-                                        .padding(12)
-                                        .background(Color.white.opacity(0.05))
-                                        .cornerRadius(12)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.white.opacity(0.5))
                                     }
+                                    .padding(12)
+                                    .background(Color.white.opacity(0.05))
+                                    .cornerRadius(12)
                                 }
                             }
                         }
