@@ -406,90 +406,134 @@ struct ExpenseSubmissionView: View {
     }
 
     private func extractAmount(from text: String) -> String? {
-        let lines = text
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        let normalizedText = normalizeOCRText(text)
 
-        let priorityKeywords = [
-            "grand total",
-            "total amount",
-            "amount due",
-            "net total",
-            "bill total",
-            "balance due",
-            "total"
+        let labeledPatterns: [String] = [
+            #"final\s+bill\s+amount(?:\s*[:\-]?)\s*(?:rs\.?|₹|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#,
+            #"grand\s+total(?:\s*[:\-]?)\s*(?:rs\.?|₹|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#,
+            #"total(?:\s*[:\-]?)\s*(?:rs\.?|₹|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#,
+            #"amount\s+due(?:\s*[:\-]?)\s*(?:rs\.?|₹|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#
         ]
 
-        func matchAmount(in line: String) -> String? {
-            let pattern = #"(?:₹|rs\.?|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#
-            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
-            let range = NSRange(line.startIndex..., in: line)
-            guard let match = regex.matches(in: line, options: [], range: range).last,
-                  let captureRange = Range(match.range(at: 1), in: line) else {
-                return nil
-            }
-            return String(line[captureRange])
-                .replacingOccurrences(of: ",", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        for keyword in priorityKeywords {
-            if let line = lines.first(where: { $0.lowercased().contains(keyword) }), let amount = matchAmount(in: line) {
+        for pattern in labeledPatterns {
+            if let amount = matchFirstCapture(in: normalizedText, pattern: pattern) {
                 return amount
             }
         }
 
-        for line in lines.reversed() {
-            if let amount = matchAmount(in: line) {
-                return amount
-            }
+        let allAmounts = extractAllAmounts(from: normalizedText)
+        if let highestAmount = allAmounts.max(by: { $0.numericValue < $1.numericValue }) {
+            return highestAmount.raw
         }
 
         return nil
     }
 
     private func extractReason(from text: String) -> String? {
-        let lowerText = text.lowercased()
+        let normalizedText = normalizeOCRText(text)
+        let lowerText = normalizedText.lowercased()
 
-        let keywordMap: [(keyword: String, value: String)] = [
-            ("fuel", "Fuel"),
-            ("petrol", "Fuel"),
-            ("diesel", "Fuel"),
-            ("service", "Service"),
-            ("repair", "Repair"),
-            ("maintenance", "Maintenance"),
-            ("parking", "Parking"),
-            ("toll", "Toll"),
-            ("wash", "Vehicle Wash"),
-            ("cleaning", "Vehicle Wash"),
-            ("tyre", "Tyre Replacement"),
-            ("tire", "Tyre Replacement"),
-            ("parts", "Parts"),
-            ("battery", "Battery")
-        ]
-
-        for entry in keywordMap {
-            if lowerText.contains(entry.keyword) {
-                return entry.value
-            }
+        if lowerText.contains("accident") && lowerText.contains("repair") {
+            return "Accident Repair"
         }
 
-        let lines = text
+        if lowerText.contains("repair") {
+            if lowerText.contains("painting") {
+                return "Repair & Painting"
+            }
+            return "Repair"
+        }
+
+        if lowerText.contains("service") {
+            return "Service"
+        }
+
+        if lowerText.contains("maintenance") {
+            return "Maintenance"
+        }
+
+        if lowerText.contains("fuel") || lowerText.contains("petrol") || lowerText.contains("diesel") {
+            return "Fuel"
+        }
+
+        if lowerText.contains("painting") {
+            return "Painting"
+        }
+
+        let lines = normalizedText
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        let ignoredKeywords = ["invoice", "bill", "receipt", "date", "total", "subtotal", "amount", "tax", "balance"]
+        let ignoredKeywords = ["invoice", "bill", "receipt", "date", "total", "subtotal", "amount", "tax", "balance", "final"]
 
         if let line = lines.first(where: { line in
             let lower = line.lowercased()
             return lower.count > 3 && !ignoredKeywords.contains(where: { lower.contains($0) })
         }) {
-            return String(line.prefix(1)).uppercased() + String(line.dropFirst()).lowercased()
+            return cleanReasonText(line)
         }
 
         return nil
+    }
+
+    private func normalizeOCRText(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "\r", with: "\n")
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .replacingOccurrences(of: "*=", with: " ")
+            .replacingOccurrences(of: "/=", with: "")
+            .replacingOccurrences(of: "Rs.", with: "Rs ", options: .caseInsensitive)
+            .replacingOccurrences(of: "RS.", with: "Rs ", options: .caseInsensitive)
+            .replacingOccurrences(of: "Rs:", with: "Rs ", options: .caseInsensitive)
+            .replacingOccurrences(of: "  ", with: " ")
+    }
+
+    private func matchFirstCapture(in text: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              let captureRange = Range(match.range(at: 1), in: text) else {
+            return nil
+        }
+
+        return String(text[captureRange])
+            .replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func extractAllAmounts(from text: String) -> [ParsedAmount] {
+        let pattern = #"(?:rs\.?|₹|inr)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return [] }
+
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.matches(in: text, options: [], range: range).compactMap { match in
+            guard let captureRange = Range(match.range(at: 1), in: text) else { return nil }
+            let raw = String(text[captureRange])
+                .replacingOccurrences(of: ",", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard let numericValue = Double(raw) else { return nil }
+            return ParsedAmount(raw: raw, numericValue: numericValue)
+        }
+    }
+
+    private func cleanReasonText(_ text: String) -> String {
+        let cleaned = text
+            .replacingOccurrences(of: "*", with: "")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "&", with: " & ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return cleaned
+            .split(separator: " ")
+            .prefix(5)
+            .joined(separator: " ")
+    }
+
+    private struct ParsedAmount {
+        let raw: String
+        let numericValue: Double
     }
 
     private func submitExpense() {
