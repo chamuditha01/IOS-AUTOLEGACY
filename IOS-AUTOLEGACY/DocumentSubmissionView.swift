@@ -215,8 +215,13 @@ struct DocumentSubmissionView: View {
                 }
             }
         } catch {
-            errorMessage = "Failed to load vehicles"
-            showError = true
+            if error is CancellationError {
+                print("ℹ️ Vehicle fetch cancelled (view was dismissed)")
+            } else {
+                print("❌ Failed to load vehicles: \(error.localizedDescription)")
+                errorMessage = "Failed to load vehicles"
+                showError = true
+            }
         }
     }
     
