@@ -21,6 +21,9 @@ struct TransferCenterView: View {
     @State private var showAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
+    @State private var showAdvanced = false
+    @State private var customGenerateInput: String = UserDefaults.standard.string(forKey: "transfer_generate_functions") ?? ""
+    @State private var customConfirmInput: String = UserDefaults.standard.string(forKey: "transfer_confirm_functions") ?? ""
 
     private var selectedVehicle: VehicleData? {
         ownedVehicles.first { $0.id == selectedVehicleId }
@@ -55,6 +58,32 @@ struct TransferCenterView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
+        }
+        .sheet(isPresented: $showAdvanced) {
+            NavigationStack {
+                Form {
+                    Section(header: Text("Custom Edge Function Names (comma separated)")) {
+                        TextField("Generate candidates", text: $customGenerateInput)
+                        TextField("Confirm candidates", text: $customConfirmInput)
+                    }
+                    Section {
+                        Button("Save") {
+                            UserDefaults.standard.set(customGenerateInput, forKey: "transfer_generate_functions")
+                            UserDefaults.standard.set(customConfirmInput, forKey: "transfer_confirm_functions")
+                            showAdvanced = false
+                        }
+                        .foregroundColor(.blue)
+                        Button("Reset to defaults", role: .destructive) {
+                            UserDefaults.standard.removeObject(forKey: "transfer_generate_functions")
+                            UserDefaults.standard.removeObject(forKey: "transfer_confirm_functions")
+                            customGenerateInput = ""
+                            customConfirmInput = ""
+                        }
+                    }
+                }
+                .navigationTitle("Transfer Advanced")
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { showAdvanced = false } } }
+            }
         }
     }
 
@@ -557,12 +586,24 @@ private final class TransferBackendService {
     private init() {}
 
     func generateTransferToken(sellerId: Int, vehicleId: String) async throws -> TransferTokenResponse {
-        let candidates = ["transfer-generate", "transfer_generate", "generate-transfer", "transfer-generate-v1", "transfer"]
+        let defaultCandidates = ["transfer-generate", "transfer_generate", "generate-transfer", "transfer-generate-v1", "transfer"]
+        let custom = (UserDefaults.standard.string(forKey: "transfer_generate_functions") ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { String($0) }
+        let candidates = custom + defaultCandidates
         return try await invokeWithCandidates(functionCandidates: candidates, body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId))
     }
 
     func confirmTransfer(token: String, vehicleId: String, buyerId: Int) async throws -> TransferConfirmationResponse {
-        let candidates = ["transfer-confirm", "transfer_confirm", "confirm-transfer", "transfer-confirm-v1", "transfer"]
+        let defaultCandidates = ["transfer-confirm", "transfer_confirm", "confirm-transfer", "transfer-confirm-v1", "transfer"]
+        let custom = (UserDefaults.standard.string(forKey: "transfer_confirm_functions") ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { String($0) }
+        let candidates = custom + defaultCandidates
         return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId))
     }
 
