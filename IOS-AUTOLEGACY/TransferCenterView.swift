@@ -152,9 +152,11 @@ struct TransferCenterView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Expiry: \(formattedDate(from: generatedTransfer.expiresAt) ?? \"5 minutes from now\")")
+                                // Fixed: Removed the backslashes from the fallback string
+                                Text("Expiry: \(formattedDate(from: generatedTransfer.expiresAt) ?? "5 minutes from now")")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(.white.opacity(0.85))
+                                
                                 Text(generatedTransfer.uri)
                                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                                     .foregroundStyle(.white.opacity(0.65))
@@ -348,14 +350,14 @@ struct TransferCenterView: View {
             let qr = TransferQRCodeRenderer.shared.makeQRCode(from: transferURI)
 
             await MainActor.run {
-                generatedTransfer = TransferSession(token: token, vehicleId: vehicle.id, uri: transferURI, expiresAt: response.expiresAtDate)
+                // Changed response.expiresAtDate to response.expiresAt
+                generatedTransfer = TransferSession(token: token, vehicleId: vehicle.id, uri: transferURI, expiresAt: response.expiresAt)
                 generatedQRCode = qr
                 alertTitle = "Transfer Ready"
                 alertMessage = "Share the QR code within 5 minutes."
                 showAlert = true
                 isProcessing = false
-            }
-        } catch BiometricAuthentication.AuthenticationError.cancelledByUser {
+            }        } catch BiometricAuthentication.AuthenticationError.cancelledByUser {
             await MainActor.run {
                 isProcessing = false
             }
