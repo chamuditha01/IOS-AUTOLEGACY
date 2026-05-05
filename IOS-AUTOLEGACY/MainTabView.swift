@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .home
+    var onLogout: (() -> Void)? = nil
     
     var body: some View {
         ZStack {
@@ -17,13 +18,9 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(AppTheme.Gradients.auth.ignoresSafeArea())
                 case .profile:
-                    Text("Profile") // Placeholder for profile
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppTheme.Gradients.auth.ignoresSafeArea())
+                    VehicleProfileView()
                 case .setting:
-                    Text("Setting") // Placeholder for settings
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppTheme.Gradients.auth.ignoresSafeArea())
+                    SettingsView(onLogout: onLogout)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -32,9 +29,13 @@ struct MainTabView: View {
             VStack {
                 Spacer()
                 CustomNavBar(selectedTab: $selectedTab)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, -20)
             }
         }
     }
+}
+
+#Preview {
+    MainTabView()
 }

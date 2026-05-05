@@ -15,7 +15,7 @@ struct CustomNavBar: View {
                         Image(systemName: tab.icon)
                             .font(.system(size: 18, weight: .semibold))
                         Text(tab.rawValue)
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
                     }
                     .foregroundColor(selectedTab == tab ? AppTheme.Colors.phoneBlue : .black)
                     .frame(maxWidth: .infinity)
@@ -35,12 +35,12 @@ struct CustomNavBar: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-        .background(Color.white.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Color.white.opacity(1))
+        .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 50, style: .continuous)
+                .stroke(Color.white.opacity(1), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 8)
+        .shadow(color: .black.opacity(1), radius: 50, x: 0, y: 20)
     }
 }

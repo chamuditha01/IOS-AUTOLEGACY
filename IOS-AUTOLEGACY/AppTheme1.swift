@@ -75,7 +75,7 @@ enum AppTheme {
         static func authSubtitle(scale: CGFloat) -> Font { .system(size: 20 * scale, weight: .semibold) }
         static func authSectionTitle(scale: CGFloat) -> Font { .system(size: 24 * scale, weight: .semibold) }
         static func authInput(scale: CGFloat) -> Font { .system(size: 22 * scale, weight: .regular) }
-        static func authButton(scale: CGFloat) -> Font { .system(size: 28 * scale, weight: .medium) }
+        static func authButton(scale: CGFloat) -> Font { .system(size: 16 * scale, weight: .semibold, design: .rounded) }
         static func authPrimaryButton(scale: CGFloat) -> Font { .system(size: 32 * scale, weight: .medium) }
 
         static func otpDigit(scale: CGFloat) -> Font { .system(size: 24 * scale, weight: .medium) }
@@ -83,7 +83,7 @@ enum AppTheme {
         static func headerSubtitle(scale: CGFloat) -> Font { .system(size: 14 * scale, weight: .medium) }
         static func getStartedTitle(scale: CGFloat) -> Font { .system(size: 30 * scale, weight: .semibold, design: .rounded) }
         static func getStartedBody(scale: CGFloat) -> Font { .system(size: 16 * scale, weight: .regular, design: .rounded) }
-        static func getStartedButton(scale: CGFloat) -> Font { .system(size: 17, weight: .semibold, design: .rounded) }
+        static func getStartedButton(scale: CGFloat) -> Font { .system(size: 16 * scale, weight: .semibold, design: .rounded) }
     }
 
     enum Metrics {
