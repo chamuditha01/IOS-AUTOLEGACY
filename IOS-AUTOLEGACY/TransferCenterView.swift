@@ -6,6 +6,7 @@ import CoreImage.CIFilterBuiltins
 import UIKit
 import Supabase
 import PostgREST
+import CryptoKit
 
 struct TransferCenterView: View {
     @State private var mode: TransferMode = .seller
@@ -593,7 +594,12 @@ private final class TransferBackendService {
             .filter { !$0.isEmpty }
             .map { String($0) }
         let candidates = custom + defaultCandidates
-        return try await invokeWithCandidates(functionCandidates: candidates, body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId))
+        do {
+            return try await invokeWithCandidates(functionCandidates: candidates, body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId))
+        } catch {
+            print("Falling back to DirectDBTransferService")
+            return try await DirectDBTransferService.shared.generateTransferToken(sellerId: sellerId, vehicleId: vehicleId)
+        }
     }
 
     func confirmTransfer(token: String, vehicleId: String, buyerId: Int) async throws -> TransferConfirmationResponse {
@@ -604,7 +610,12 @@ private final class TransferBackendService {
             .filter { !$0.isEmpty }
             .map { String($0) }
         let candidates = custom + defaultCandidates
-        return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId))
+        do {
+            return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId))
+        } catch {
+            print("Falling back to DirectDBTransferService")
+            return try await DirectDBTransferService.shared.confirmTransfer(token: token, vehicleId: vehicleId, buyerId: buyerId)
+        }
     }
 
     private func invokeWithCandidates<Response: Decodable, Body: Encodable>(functionCandidates: [String], body: Body) async throws -> Response {
@@ -866,6 +877,96 @@ private struct InfoChip: View {
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct TransferTokenRow: Decodable {
+    let id: String
+    let vehicle_id: String
+    let seller_id: Int
+    let token_hash: String
+    let expires_at: String
+    let is_used: Bool
+}
+
+private final class DirectDBTransferService {
+    static let shared = DirectDBTransferService()
+    private init() {}
+
+    private func sha256Hex(_ s: String) -> String {
+        let data = Data(s.utf8)
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    func generateTransferToken(sellerId: Int, vehicleId: String) async throws -> TransferTokenResponse {
+        let token = UUID().uuidString
+        let hash = sha256Hex(token)
+        let expires = Date().addingTimeInterval(5 * 60)
+        let iso = ISO8601DateFormatter().string(from: expires)
+
+        let payload: [String: Any] = [
+            "vehicle_id": vehicleId,
+            "seller_id": sellerId,
+            "token_hash": hash,
+            "expires_at": iso,
+            "is_used": false
+        ]
+
+        _ = try await supabase
+            .from("transfer_tokens")
+            .insert([payload])
+            .execute()
+
+        let responseJSON = """
+        {"token":"\(token)","expires_at":"\(iso)"}
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        let resp = try decoder.decode(TransferTokenResponse.self, from: responseJSON)
+        return resp
+    }
+
+    func confirmTransfer(token: String, vehicleId: String, buyerId: Int) async throws -> TransferConfirmationResponse {
+        let hash = sha256Hex(token)
+
+        let rows: [TransferTokenRow] = try await supabase
+            .from("transfer_tokens")
+            .select("*")
+            .eq("token_hash", value: hash)
+            .eq("vehicle_id", value: vehicleId)
+            .eq("is_used", value: false)
+            .execute()
+            .value
+
+        guard let row = rows.first else {
+            throw TransferError.edgeFunctionFailed("Token not found or already used")
+        }
+
+        let iso = ISO8601DateFormatter()
+        if let exp = iso.date(from: row.expires_at), exp < Date() {
+            throw TransferError.edgeFunctionFailed("Token expired")
+        }
+
+        _ = try await supabase
+            .from("vehicle")
+            .update(["owner_id": buyerId])
+            .eq("id", value: vehicleId)
+            .execute()
+
+        _ = try await supabase
+            .from("transfer_tokens")
+            .update(["is_used": true])
+            .eq("id", value: row.id)
+            .execute()
+
+        let responseJSON = """
+        {"message":"Ownership transferred successfully"}
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        let resp = try decoder.decode(TransferConfirmationResponse.self, from: responseJSON)
+        return resp
     }
 }
 
