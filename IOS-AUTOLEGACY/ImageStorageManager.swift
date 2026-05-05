@@ -21,17 +21,6 @@ class ImageStorageManager {
         return billsDir
     }
     
-    private var qrTransferDirectory: URL {
-        let qrDir = documentsDirectory.appendingPathComponent("QRTransfers")
-        
-        // Create directory if it doesn't exist
-        if !fileManager.fileExists(atPath: qrDir.path) {
-            try? fileManager.createDirectory(at: qrDir, withIntermediateDirectories: true)
-        }
-        
-        return qrDir
-    }
-    
     /// Save a bill image locally and return the file path
     func saveBillImage(_ image: UIImage, forExpenseId expenseId: String) throws -> String {
         // Create filename with timestamp
@@ -128,85 +117,6 @@ class ImageStorageManager {
             print("❌ Error clearing bills: \(error)")
             throw StorageError.deletionFailed
         }
-    }
-    
-    // MARK: - QR Transfer Image Methods
-    
-    /// Save a QR transfer image locally and return the file path
-    /// Format: qr_transfer_<vehicleId>_<timestamp>.jpg
-    func saveQRTransferImage(_ image: UIImage, forVehicleId vehicleId: String, buyerId: Int) throws -> String {
-        let timestamp = Date().timeIntervalSince1970
-        let filename = "qr_transfer_\(vehicleId)_\(buyerId)_\(timestamp).jpg"
-        let fileURL = qrTransferDirectory.appendingPathComponent(filename)
-        
-        guard let imageData = image.jpegData(compressionQuality: 0.9) else {
-            throw StorageError.imageCompressionFailed
-        }
-        
-        try imageData.write(to: fileURL)
-        
-        print("✅ QR Transfer image saved: \(filename)")
-        print("📁 Path: \(fileURL.path)")
-        
-        return filename
-    }
-    
-    /// Load a QR transfer image from local storage
-    func loadQRTransferImage(filename: String) -> UIImage? {
-        let fileURL = qrTransferDirectory.appendingPathComponent(filename)
-        
-        guard fileManager.fileExists(atPath: fileURL.path) else {
-            print("❌ QR Transfer image file not found: \(filename)")
-            return nil
-        }
-        
-        return UIImage(contentsOfFile: fileURL.path)
-    }
-    
-    /// Delete a QR transfer image
-    func deleteQRTransferImage(filename: String) throws {
-        let fileURL = qrTransferDirectory.appendingPathComponent(filename)
-        
-        if fileManager.fileExists(atPath: fileURL.path) {
-            try fileManager.removeItem(at: fileURL)
-            print("✅ QR Transfer image deleted: \(filename)")
-        }
-    }
-    
-    /// Get all saved QR transfer images
-    func getAllQRTransferImages() -> [String] {
-        do {
-            let files = try fileManager.contentsOfDirectory(atPath: qrTransferDirectory.path)
-            return files.filter { $0.hasSuffix(".jpg") }
-        } catch {
-            print("❌ Error reading QR transfers directory: \(error)")
-            return []
-        }
-    }
-    
-    /// Get QR transfer images for a specific vehicle
-    func getQRTransferImagesForVehicle(_ vehicleId: String) -> [String] {
-        getAllQRTransferImages().filter { $0.contains("qr_transfer_\(vehicleId)") }
-    }
-    
-    /// Clear all saved QR transfer images
-    func clearAllQRTransfers() throws {
-        do {
-            let files = try fileManager.contentsOfDirectory(atPath: qrTransferDirectory.path)
-            for file in files {
-                let fileURL = qrTransferDirectory.appendingPathComponent(file)
-                try fileManager.removeItem(at: fileURL)
-            }
-            print("✅ All QR transfer images cleared")
-        } catch {
-            print("❌ Error clearing QR transfers: \(error)")
-            throw StorageError.deletionFailed
-        }
-    }
-    
-    /// Get the full file path for a QR transfer image (useful for asset bundling)
-    func getQRTransferImagePath(filename: String) -> String {
-        return qrTransferDirectory.appendingPathComponent(filename).path
     }
 }
 
