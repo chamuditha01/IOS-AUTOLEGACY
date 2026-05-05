@@ -58,6 +58,10 @@ struct SettingsView: View {
                             NavigationLink(destination: AboutUsView().navigationBarBackButtonHidden(true)) {
                                 SettingsRowView(title: "About", subtitle: "Version 1.0.0")
                             }
+
+                            NavigationLink(destination: TransferCenterView().navigationBarBackButtonHidden(true)) {
+                                SettingsRowView(title: "Transfer Center", subtitle: "Secure vehicle handover")
+                            }
                             
                             Spacer(minLength: 20)
                             
