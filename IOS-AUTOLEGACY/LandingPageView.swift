@@ -19,7 +19,6 @@ struct LandingPageView: View {
             VStack(spacing: 40) {
                 Spacer()
                 
-                
                 VStack(spacing: 16) {
                     Image(systemName: "car.fill")
                         .font(.system(size: 60))

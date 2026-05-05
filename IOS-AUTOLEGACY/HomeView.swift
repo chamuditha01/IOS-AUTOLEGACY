@@ -1,17 +1,7 @@
 import SwiftUI
-import Supabase
-import PostgREST
 
 struct HomeView: View {
     @State private var selectedVehicleIndex = 0
-    @State private var vehicles: [Vehicle] = []
-    @State private var isLoading = true
-    @State private var showAlertView = false
-    @State private var showFuelTracking = false
-    @State private var showExpenseTracking = false
-    @State private var alertTitle: String = ""
-    @State private var alertMessage: String = ""
-    @State private var alertCount: Int = 0
 
     private let serviceItems: [ServiceItem] = [
         .init(title: "Expenses", icon: "dollarsign.circle.fill"),
@@ -19,196 +9,76 @@ struct HomeView: View {
         .init(title: "Service", icon: "wrench.and.screwdriver.fill")
     ]
 
+    private let vehicles: [Vehicle] = [
+        .init(name: "2026 Ford", model: "Mustang GT", vin: "WBA53AK06NSXXXX", status: "EXCELLENT", statusColor: Color(red: 0.66, green: 1.0, blue: 0.68), bodyColor: Color.yellow.opacity(0.95), metrics: [
+            .init(title: "OIL LIFE", value: "92%", icon: "steeringwheel"),
+            .init(title: "TYRES", value: "70%", icon: "exclamationmark.tirepressure"),
+            .init(title: "BATTERY", value: "80%", icon: "battery.75")
+        ]),
+        .init(name: "2025 BMW", model: "M4 Competition", vin: "WBX98QJ24ZZXXXX", status: "NEEDS CHECK", statusColor: Color.orange.opacity(0.95), bodyColor: Color.blue.opacity(0.9), metrics: [
+            .init(title: "OIL LIFE", value: "78%", icon: "steeringwheel"),
+            .init(title: "TYRES", value: "61%", icon: "exclamationmark.tirepressure"),
+            .init(title: "BATTERY", value: "88%", icon: "battery.75")
+        ]),
+        .init(name: "2024 Audi", model: "RS5 Sportback", vin: "WAU12PL77AXXXXX", status: "GOOD", statusColor: Color.green.opacity(0.95), bodyColor: Color.red.opacity(0.85), metrics: [
+            .init(title: "OIL LIFE", value: "85%", icon: "steeringwheel"),
+            .init(title: "TYRES", value: "74%", icon: "exclamationmark.tirepressure"),
+            .init(title: "BATTERY", value: "90%", icon: "battery.75")
+        ])
+    ]
+
+    private let bottomTabs: [BottomTab] = [
+        .init(title: "Home", icon: "house.fill", isSelected: false),
+        .init(title: "Vault", icon: "calendar.badge.clock", isSelected: false),
+        .init(title: "Map", icon: "map.fill", isSelected: false),
+        .init(title: "Profile", icon: "person.fill", isSelected: false),
+        .init(title: "Setting", icon: "gearshape.fill", isSelected: true)
+    ]
+
     var body: some View {
         ZStack {
             AppTheme.Gradients.auth
                 .ignoresSafeArea()
 
-            if isLoading {
-                VStack {
-                    ProgressView()
-                        .tint(AppTheme.Colors.whiteSurface)
-                        .scaleEffect(1.5)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        topBar
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    topBar
 
-                        if vehicles.isEmpty {
-                            emptyState
-                        } else {
-                            vehicleCarousel
-                        }
+                    vehicleCarousel
 
-                        serviceReminder
+                    serviceReminder
 
-                        Text("Services")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundColor(AppTheme.Colors.whiteSurface)
-                            .padding(.top, 4)
+                    Text("Services")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.Colors.whiteSurface)
+                        .padding(.top, 4)
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(serviceItems) { item in
-                                    servicePill(item)
-                                }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(serviceItems) { item in
+                                servicePill(item)
                             }
-                            .padding(.trailing, 6)
                         }
-                        .frame(height: 104)
-
-                        securityAlerts
+                        .padding(.trailing, 6)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, 120)
-                }
-            }
-        }
-        .sheet(isPresented: $showFuelTracking) {
-            FuelTrackingView()
-        }
-        .sheet(isPresented: $showExpenseTracking) {
-            ExpenseSubmissionView()
-        }
-        .onAppear {
-            fetchVehicles()
-        }
-    }
+                    .frame(height: 104)
 
-    private func fetchVehicles() {
-        isLoading = true
-        
-        Task {
-            do {
-                guard let userId = SessionManager.shared.getUserId() else {
-                    print("❌ No user ID found")
-                    isLoading = false
-                    return
+                    securityAlerts
                 }
-                
-                print("📱 Fetching vehicles for user: \(userId)")
-                let vehiclesWithStats = try await fetchVehiclesForUser(userId: userId)
-                
-                DispatchQueue.main.async {
-                    vehicles = vehiclesWithStats.map { vehicleData, stats in
-                        let oilValue = stats?.Oil ?? "N/A"
-                        let tiresValue = stats?.Tires ?? "N/A"
-                        let batteryValue = stats?.Battery ?? "N/A"
-                        
-                        // Determine status based on stats
-                        let status = determineStatus(oil: oilValue, tires: tiresValue, battery: batteryValue)
-                        
-                        return Vehicle(
-                            name: vehicleData.make,
-                            model: vehicleData.model,
-                            vin: vehicleData.id,
-                            status: status.name,
-                            statusColor: status.color,
-                            bodyColor: Color.blue.opacity(0.9),
-                            metrics: [
-                                .init(title: "OIL LIFE", value: oilValue, icon: "steeringwheel"),
-                                .init(title: "TYRES", value: tiresValue, icon: "exclamationmark.tirepressure"),
-                                .init(title: "BATTERY", value: batteryValue, icon: "battery.75")
-                            ]
-                        )
-                    }
-                    isLoading = false
-                    Task { await loadAlertsForVehicles() }
-                }
-            } catch {
-                print("❌ Error fetching vehicles: \(error)")
-                DispatchQueue.main.async {
-                    isLoading = false
-                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 120)
+            }
+
+            VStack {
+                Spacer()
+                bottomNav
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
             }
         }
     }
 
-    private func loadAlertsForVehicles() async {
-        alertTitle = ""
-        alertMessage = ""
-        alertCount = 0
-
-        do {
-            guard !vehicles.isEmpty else { return }
-
-            // compute date threshold (7 days)
-            let thresholdDate = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy-MM-dd"
-            let thresholdString = fmt.string(from: thresholdDate)
-
-            // fetch documents expiring on or before threshold
-            let docs: [HomeDocument] = try await supabase
-                .from("document")
-                .select("id, vehicleid, doctype, expirydate")
-                .lte("expirydate", value: thresholdString)
-                .execute()
-                .value
-
-            let vehicleIds = Set(vehicles.map { $0.vin })
-            let relevant = docs.filter { vehicleIds.contains($0.vehicleid) }
-
-            await MainActor.run {
-                alertCount = relevant.count
-                if let nearest = relevant.sorted(by: { (a, b) in
-                    let da = fmt.date(from: a.expirydate) ?? Date.distantFuture
-                    let db = fmt.date(from: b.expirydate) ?? Date.distantFuture
-                    return da < db
-                }).first, let expDate = fmt.date(from: nearest.expirydate) {
-                    let days = Calendar.current.dateComponents([.day], from: Date(), to: expDate).day ?? 0
-                    alertTitle = nearest.doctype.uppercased() + " EXPIRING"
-                    alertMessage = "\(nearest.doctype.capitalized) expiring in \(max(days,0)) days"
-                } else {
-                    alertTitle = "No Alerts"
-                    alertMessage = "You're all set for the next 7 days"
-                }
-            }
-        } catch {
-            await MainActor.run {
-                alertTitle = "Alerts Unavailable"
-                alertMessage = "Failed to load alerts"
-            }
-        }
-    }
-
-    private func determineStatus(oil: String, tires: String, battery: String) -> (name: String, color: Color) {
-        // Parse values and determine overall status
-        let oilPercent = Int(oil.replacingOccurrences(of: "%", with: "")) ?? 50
-        let tiresPercent = Int(tires.replacingOccurrences(of: "%", with: "")) ?? 50
-        let batteryPercent = Int(battery.replacingOccurrences(of: "%", with: "")) ?? 50
-        
-        let minValue = min(oilPercent, tiresPercent, batteryPercent)
-        
-        if minValue < 50 {
-            return ("CRITICAL", Color.red.opacity(0.95))
-        } else if minValue < 70 {
-            return ("NEEDS CHECK", Color.orange.opacity(0.95))
-        } else {
-            return ("EXCELLENT", Color(red: 0.66, green: 1.0, blue: 0.68))
-        }
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "car.fill")
-                .font(.system(size: 60))
-                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.5))
-            
-            Text("No Vehicles Found")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(AppTheme.Colors.whiteSurface)
-            
-            Text("Add a vehicle to get started")
-                .font(.system(size: 14))
-                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.7))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-    }
     private var topBar: some View {
         HStack {
             Text("AutoLegacy")
@@ -217,104 +87,71 @@ struct HomeView: View {
 
             Spacer()
 
-            Button(action: {
-                        // 2. Set this to true when tapped
-                        showAlertView = true
-                    }) {
-                        Image(systemName: "bell")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(AppTheme.Colors.whiteSurface)
-                            .frame(width: 42, height: 42)
-                    }
-                    // 3. Attach the sheet modifier
-                    .sheet(isPresented: $showAlertView) {
-                        AlertsView()
-                    }
+            Image(systemName: "bell")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(AppTheme.Colors.whiteSurface)
+                .frame(width: 42, height: 42)
         }
         .padding(.top, 4)
     }
 
     private var vehicleCarousel: some View {
-        VStack(spacing: 15) {
+        VStack(alignment: .leading, spacing: 10) {
             TabView(selection: $selectedVehicleIndex) {
                 ForEach(Array(vehicles.enumerated()), id: \.offset) { index, vehicle in
                     vehicleCard(vehicle)
-                        .padding(.horizontal, 10) // Small gap between cards
                         .tag(index)
+                        .padding(.vertical, 2)
                 }
             }
-            .frame(height: 400) // Slightly taller to accommodate better spacing
+            .frame(height: 360)
             .tabViewStyle(.page(indexDisplayMode: .never))
 
-            // Custom Pagination Dots
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 ForEach(vehicles.indices, id: \.self) { index in
-                    Circle()
-                        .fill(index == selectedVehicleIndex ? AppTheme.Colors.whiteSurface : AppTheme.Colors.whiteSurface.opacity(0.2))
-                        .frame(width: index == selectedVehicleIndex ? 10 : 6, height: 6)
-                        .scaleEffect(index == selectedVehicleIndex ? 1.2 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selectedVehicleIndex)
+                    Capsule()
+                        .fill(index == selectedVehicleIndex ? AppTheme.Colors.whiteSurface : AppTheme.Colors.whiteSurface.opacity(0.35))
+                        .frame(width: index == selectedVehicleIndex ? 18 : 7, height: 7)
+                        .animation(.easeInOut(duration: 0.2), value: selectedVehicleIndex)
                 }
             }
-            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 2)
         }
     }
 
     private func vehicleCard(_ vehicle: Vehicle) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Header Row
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(vehicle.name)
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
                     Text(vehicle.model)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.6))
                 }
-                
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(AppTheme.Colors.whiteSurface)
+
                 Spacer()
-                
+
                 statusBadge(vehicle)
             }
 
-            // VIN Number with a "Tag" look
             Text(vehicle.vin)
-                .font(.system(.caption, design: .monospaced))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.1))
-                .foregroundColor(.white.opacity(0.5))
-                .cornerRadius(6)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.75))
 
-            // Hero Image Section
             carHeroImage(bodyColor: vehicle.bodyColor)
-                .frame(maxWidth: .infinity)
-                .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 10)
 
-            // Bottom Metrics
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ForEach(vehicle.metrics) { metric in
                     metricTile(title: metric.title, value: metric.value, icon: metric.icon)
-                        .frame(maxWidth: .infinity) // Ensures tiles are equal width
                 }
             }
         }
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 32)
-                .fill(LinearGradient(
-                    colors: [Color(white: 0.15), Color(white: 0.05)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 32)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
+        .padding(18)
+        .background(Color.black.opacity(0.88))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
+
     private func statusBadge(_ vehicle: Vehicle) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.circle.fill")
@@ -400,33 +237,25 @@ struct HomeView: View {
     }
 
     private func servicePill(_ item: ServiceItem) -> some View {
-        Button(action: {
-            if item.title == "Fuel" {
-                showFuelTracking = true
-            } else if item.title == "Expenses" {
-                showExpenseTracking = true
-            }
-        }) {
-            VStack(alignment: .leading, spacing: 14) {
-                Image(systemName: item.icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.75))
+        VStack(alignment: .leading, spacing: 14) {
+            Image(systemName: item.icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.75))
 
-                Spacer()
+            Spacer()
 
-                Text(item.title)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.9))
-            }
-            .padding(14)
-            .frame(width: 108, height: 92, alignment: .leading)
-            .background(Color.white.opacity(0.10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            Text(item.title)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(AppTheme.Colors.whiteSurface.opacity(0.9))
         }
+        .padding(14)
+        .frame(width: 108, height: 92, alignment: .leading)
+        .background(Color.white.opacity(0.10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var securityAlerts: some View {
@@ -441,10 +270,10 @@ struct HomeView: View {
                     .foregroundColor(Color(red: 0.45, green: 0.04, blue: 0.06))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(alertTitle.isEmpty ? "DOCUMENT ALERT" : alertTitle)
+                    Text("DOCUMENT ALERT")
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.45, green: 0.04, blue: 0.06))
-                    Text(alertMessage.isEmpty ? "No current alerts" : alertMessage)
+                    Text("Insurance Expiring in 2 days")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(Color(red: 0.45, green: 0.04, blue: 0.06))
                 }
@@ -458,6 +287,40 @@ struct HomeView: View {
         .padding(20)
         .background(Color.black.opacity(0.88))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var bottomNav: some View {
+        HStack(spacing: 0) {
+            ForEach(bottomTabs) { tab in
+                VStack(spacing: 5) {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 18, weight: .semibold))
+                    Text(tab.title)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(tab.isSelected ? AppTheme.Colors.phoneBlue : .black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    ZStack {
+                        if tab.isSelected {
+                            Capsule()
+                                .fill(Color.black.opacity(0.08))
+                                .padding(4)
+                        }
+                    }
+                )
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.white.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 8)
     }
 }
 
@@ -485,13 +348,13 @@ private struct VehicleMetric: Identifiable {
     let icon: String
 }
 
-private struct HomeDocument: Decodable {
-    let id: String
-    let vehicleid: String
-    let doctype: String
-    let expirydate: String
+private struct BottomTab: Identifiable {
+    let id = UUID()
+    let title: String
+    let icon: String
+    let isSelected: Bool
 }
 
 #Preview {
-    MainTabView()
+    HomeView()
 }

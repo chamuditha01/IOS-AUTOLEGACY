@@ -25,6 +25,16 @@ struct TransferCenterView: View {
     @State private var showAdvanced = false
     @State private var customGenerateInput: String = UserDefaults.standard.string(forKey: "transfer_generate_functions") ?? ""
     @State private var customConfirmInput: String = UserDefaults.standard.string(forKey: "transfer_confirm_functions") ?? ""
+    
+    // QR Image Upload for Buyers (select from app Assets)
+    @State private var uploadedQRImage: UIImage?
+    @State private var qrImageFilename: String?
+    
+    // Seller: buyer phone input to bind with token
+    @State private var buyerPhoneInput: String = ""
+    
+    // Buyer: manual token input
+    @State private var buyerTokenInput: String = ""
 
     private var selectedVehicle: VehicleData? {
         ownedVehicles.first { $0.id == selectedVehicleId }
@@ -150,6 +160,13 @@ struct TransferCenterView: View {
                         }
                     }
 
+                    // Buyer phone input to bind the token to a specific buyer
+                    TextField("Buyer phone (e.g. +94123456789)", text: $buyerPhoneInput)
+                        .keyboardType(.phonePad)
+                        .textContentType(.telephoneNumber)
+                        .padding(.vertical, 6)
+                        .foregroundColor(.white)
+
                     Button(action: {
                         Task {
                             await initiateTransfer()
@@ -192,6 +209,15 @@ struct TransferCenterView: View {
                                     .foregroundStyle(.white.opacity(0.65))
                                     .lineLimit(3)
                             }
+
+                            Button(action: {
+                                UIPasteboard.general.string = generatedTransfer.token
+                                alertTitle = "Token Copied"
+                                alertMessage = "Transfer token copied to clipboard."
+                                showAlert = true
+                            }) {
+                                primaryButtonLabel(title: "Copy Token", systemImage: "doc.on.doc.fill")
+                            }
                         }
                         .padding(.top, 4)
                     }
@@ -202,15 +228,95 @@ struct TransferCenterView: View {
 
     private var buyerPanel: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader(title: "Buyer Transfer Acceptance", subtitle: "Scan a transfer QR, confirm the vehicle, then finalize ownership transfer.")
+            sectionHeader(title: "Buyer Transfer Acceptance", subtitle: "Scan a transfer QR, upload QR image, confirm the vehicle, then finalize ownership transfer.")
 
             panelCard {
                 VStack(alignment: .leading, spacing: 12) {
+                    // Scan QR Button
                     Button(action: {
                         showScanner = true
                     }) {
                         primaryButtonLabel(title: "Scan QR", systemImage: "qrcode.viewfinder")
                     }
+                    
+                    Divider().overlay(Color.white.opacity(0.2))
+                    
+                    // Select QR image from app Assets (qr_image_1 ... qr_image_5)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("QR Assets")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], spacing: 10) {
+                            ForEach(1...5, id: \.self) { i in
+                                let name = "qr_image_\(i)"
+                                Button(action: {
+                                    if let image = UIImage(named: name) {
+                                        uploadedQRImage = image
+                                        qrImageFilename = name
+                                    }
+                                }) {
+                                    VStack(spacing: 8) {
+                                        Image(name)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 72, height: 72)
+                                            .clipped()
+                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                        Text(name)
+                                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.white)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.8)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        Text("Use assets named qr_image_1 to qr_image_5 in Assets.xcassets.")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.68))
+                    }
+
+                    Divider().overlay(Color.white.opacity(0.2))
+
+                    // Buyer can also transfer from token directly
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Transfer From Token")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+
+                        TextField("Enter transfer token", text: $buyerTokenInput)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .foregroundColor(.white)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        Button(action: {
+                            Task {
+                                await confirmTransferFromToken()
+                            }
+                        }) {
+                            primaryButtonLabel(title: isProcessing ? "Confirming..." : "Confirm Using Token", systemImage: "key.fill")
+                        }
+                        .disabled(isProcessing || buyerTokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .opacity(buyerTokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.55 : 1)
+                    }
+
+                    Divider().overlay(Color.white.opacity(0.2))
 
                     if let scannedTransfer {
                         VStack(alignment: .leading, spacing: 10) {
@@ -238,8 +344,38 @@ struct TransferCenterView: View {
                             .opacity(scannedVehicle == nil ? 0.55 : 1)
                         }
                         .padding(.top, 6)
+                    } else if let uploadedImage = uploadedQRImage, let filename = qrImageFilename {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Uploaded QR Image")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+
+                            Image(uiImage: uploadedImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("File: \(filename)")
+                                    .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.7))
+
+                                HStack(spacing: 10) {
+                                    Button(action: {
+                                        uploadedQRImage = nil
+                                        qrImageFilename = nil
+                                    }) {
+                                        Label("Clear", systemImage: "xmark.circle.fill")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.top, 6)
                     } else {
-                        emptyState(text: "No QR scanned yet")
+                        emptyState(text: "No QR scanned or uploaded yet")
                     }
                 }
             }
@@ -374,7 +510,8 @@ struct TransferCenterView: View {
         do {
             try await BiometricAuthentication.shared.authenticate(reason: "Authenticate to generate a secure transfer QR for \(vehicle.make) \(vehicle.model)")
 
-            let response = try await TransferBackendService.shared.generateTransferToken(sellerId: userId, vehicleId: vehicle.id)
+            let buyerPhone = buyerPhoneInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let response = try await TransferBackendService.shared.generateTransferToken(sellerId: userId, vehicleId: vehicle.id, buyerPhone: buyerPhone.isEmpty ? nil : buyerPhone)
             let token = response.token
             let transferURI = "autolegal://transfer?token=\(token.urlEncoded)&vid=\(vehicle.id.urlEncoded)"
             let qr = TransferQRCodeRenderer.shared.makeQRCode(from: transferURI)
@@ -450,7 +587,8 @@ struct TransferCenterView: View {
         isProcessing = true
 
         do {
-            let response = try await TransferBackendService.shared.confirmTransfer(token: payload.token, vehicleId: payload.vehicleId, buyerId: userId)
+            let buyerPhone = SessionManager.shared.getUserMobile()
+            let response = try await TransferBackendService.shared.confirmTransfer(token: payload.token, vehicleId: payload.vehicleId, buyerId: userId, buyerPhone: buyerPhone)
 
             await MainActor.run {
                 alertTitle = "Transfer Complete"
@@ -474,6 +612,42 @@ struct TransferCenterView: View {
         }
     }
 
+    private func confirmTransferFromToken() async {
+        let token = buyerTokenInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty, let userId = SessionManager.shared.getUserId() else {
+            alertTitle = "Token Missing"
+            alertMessage = "Enter a transfer token and make sure you're logged in."
+            showAlert = true
+            return
+        }
+
+        isProcessing = true
+
+        do {
+            let buyerPhone = SessionManager.shared.getUserMobile()
+            let response = try await TransferBackendService.shared.confirmTransfer(token: token, buyerId: userId, buyerPhone: buyerPhone)
+
+            await MainActor.run {
+                alertTitle = "Transfer Complete"
+                alertMessage = response.message ?? "Ownership transferred successfully."
+                showAlert = true
+                buyerTokenInput = ""
+                uploadedQRImage = nil
+                qrImageFilename = nil
+                isProcessing = false
+            }
+
+            await loadOwnedVehicles()
+        } catch {
+            await MainActor.run {
+                isProcessing = false
+                alertTitle = "Transfer Failed"
+                alertMessage = error.localizedDescription
+                showAlert = true
+            }
+        }
+    }
+
     private func formattedDate(from date: Date?) -> String? {
         guard let date else { return nil }
         let formatter = DateFormatter()
@@ -481,6 +655,8 @@ struct TransferCenterView: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+    
+    
 }
 
 private enum TransferMode: String, CaseIterable, Identifiable {
@@ -534,10 +710,12 @@ private struct TransferScanPayload {
 private struct TransferTokenRequest: Encodable {
     let sellerId: Int
     let vehicleId: String
+    let buyerPhone: String?
 
     enum CodingKeys: String, CodingKey {
         case sellerId = "seller_id"
         case vehicleId = "vehicle_id"
+        case buyerPhone = "buyer_phone"
     }
 }
 
@@ -545,11 +723,25 @@ private struct ConfirmTransferRequest: Encodable {
     let token: String
     let vehicleId: String
     let buyerId: Int
+    let buyerPhone: String?
 
     enum CodingKeys: String, CodingKey {
         case token
         case vehicleId = "vehicle_id"
         case buyerId = "buyer_id"
+        case buyerPhone = "buyer_phone"
+    }
+}
+
+private struct ConfirmTransferByTokenRequest: Encodable {
+    let token: String
+    let buyerId: Int
+    let buyerPhone: String?
+
+    enum CodingKeys: String, CodingKey {
+        case token
+        case buyerId = "buyer_id"
+        case buyerPhone = "buyer_phone"
     }
 }
 
@@ -586,7 +778,7 @@ private final class TransferBackendService {
 
     private init() {}
 
-    func generateTransferToken(sellerId: Int, vehicleId: String) async throws -> TransferTokenResponse {
+    func generateTransferToken(sellerId: Int, vehicleId: String, buyerPhone: String?) async throws -> TransferTokenResponse {
         let defaultCandidates = ["transfer-generate", "transfer_generate", "generate-transfer", "transfer-generate-v1", "transfer"]
         let custom = (UserDefaults.standard.string(forKey: "transfer_generate_functions") ?? "")
             .split(separator: ",")
@@ -595,14 +787,14 @@ private final class TransferBackendService {
             .map { String($0) }
         let candidates = custom + defaultCandidates
         do {
-            return try await invokeWithCandidates(functionCandidates: candidates, body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId))
+            return try await invokeWithCandidates(functionCandidates: candidates, body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId, buyerPhone: buyerPhone))
         } catch {
             print("Falling back to DirectDBTransferService")
-            return try await DirectDBTransferService.shared.generateTransferToken(sellerId: sellerId, vehicleId: vehicleId)
+            return try await DirectDBTransferService.shared.generateTransferToken(sellerId: sellerId, vehicleId: vehicleId, buyerPhone: buyerPhone)
         }
     }
 
-    func confirmTransfer(token: String, vehicleId: String, buyerId: Int) async throws -> TransferConfirmationResponse {
+    func confirmTransfer(token: String, vehicleId: String, buyerId: Int, buyerPhone: String? = nil) async throws -> TransferConfirmationResponse {
         let defaultCandidates = ["transfer-confirm", "transfer_confirm", "confirm-transfer", "transfer-confirm-v1", "transfer"]
         let custom = (UserDefaults.standard.string(forKey: "transfer_confirm_functions") ?? "")
             .split(separator: ",")
@@ -611,10 +803,26 @@ private final class TransferBackendService {
             .map { String($0) }
         let candidates = custom + defaultCandidates
         do {
-            return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId))
+            return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId, buyerPhone: buyerPhone))
         } catch {
             print("Falling back to DirectDBTransferService")
             return try await DirectDBTransferService.shared.confirmTransfer(token: token, vehicleId: vehicleId, buyerId: buyerId)
+        }
+    }
+
+    func confirmTransfer(token: String, buyerId: Int, buyerPhone: String? = nil) async throws -> TransferConfirmationResponse {
+        let defaultCandidates = ["transfer-confirm", "transfer_confirm", "confirm-transfer", "transfer-confirm-v1", "transfer"]
+        let custom = (UserDefaults.standard.string(forKey: "transfer_confirm_functions") ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map { String($0) }
+        let candidates = custom + defaultCandidates
+        do {
+            return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferByTokenRequest(token: token, buyerId: buyerId, buyerPhone: buyerPhone))
+        } catch {
+            print("Falling back to DirectDBTransferService")
+            return try await DirectDBTransferService.shared.confirmTransfer(token: token, buyerId: buyerId, buyerPhone: buyerPhone)
         }
     }
 
@@ -880,13 +1088,14 @@ private struct InfoChip: View {
     }
 }
 
-private struct TransferTokenRow: Decodable {
+private struct TransferTokenRow: Codable {
     let id: String
     let vehicle_id: String
     let seller_id: Int
     let token_hash: String
     let expires_at: String
     let is_used: Bool
+    let buyer_phone: String?
 }
 
 private final class DirectDBTransferService {
@@ -899,19 +1108,89 @@ private final class DirectDBTransferService {
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
-    func generateTransferToken(sellerId: Int, vehicleId: String) async throws -> TransferTokenResponse {
+    private func normalizedTokenCandidates(from raw: String) -> [String] {
+        var token = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+
+        if let components = URLComponents(string: token),
+           components.scheme != nil,
+           let queryToken = components.queryItems?.first(where: { $0.name.lowercased() == "token" })?.value,
+           !queryToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            token = queryToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let decoded = token.removingPercentEncoding?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var values: [String] = [token]
+        if let decoded, !decoded.isEmpty, decoded != token {
+            values.append(decoded)
+        }
+
+        var unique: [String] = []
+        for item in values where !item.isEmpty {
+            if !unique.contains(item) {
+                unique.append(item)
+            }
+        }
+        return unique
+    }
+
+    private func resolveTokenRow(token rawToken: String, vehicleId: String?) async throws -> TransferTokenRow? {
+        let candidates = normalizedTokenCandidates(from: rawToken)
+
+        for candidate in candidates {
+            let hash = sha256Hex(candidate)
+            var query = supabase
+                .from("transfer_tokens")
+                .select("*")
+                .eq("token_hash", value: hash)
+                .eq("is_used", value: false)
+
+            if let vehicleId {
+                query = query.eq("vehicle_id", value: vehicleId)
+            }
+
+            let rows: [TransferTokenRow] = try await query.execute().value
+            if let row = rows.first {
+                return row
+            }
+
+            if candidate.count == 64,
+               candidate.range(of: "^[A-Fa-f0-9]{64}$", options: .regularExpression) != nil {
+                var hashQuery = supabase
+                    .from("transfer_tokens")
+                    .select("*")
+                    .eq("token_hash", value: candidate.lowercased())
+                    .eq("is_used", value: false)
+
+                if let vehicleId {
+                    hashQuery = hashQuery.eq("vehicle_id", value: vehicleId)
+                }
+
+                let hashRows: [TransferTokenRow] = try await hashQuery.execute().value
+                if let row = hashRows.first {
+                    return row
+                }
+            }
+        }
+
+        return nil
+    }
+
+    func generateTransferToken(sellerId: Int, vehicleId: String, buyerPhone: String?) async throws -> TransferTokenResponse {
         let token = UUID().uuidString
         let hash = sha256Hex(token)
         let expires = Date().addingTimeInterval(5 * 60)
         let iso = ISO8601DateFormatter().string(from: expires)
 
-        let payload: [String: Any] = [
-            "vehicle_id": vehicleId,
-            "seller_id": sellerId,
-            "token_hash": hash,
-            "expires_at": iso,
-            "is_used": false
-        ]
+        let payload = TransferTokenRow(
+            id: UUID().uuidString,
+            vehicle_id: vehicleId,
+            seller_id: sellerId,
+            token_hash: hash,
+            expires_at: iso,
+            is_used: false,
+            buyer_phone: buyerPhone
+        )
 
         _ = try await supabase
             .from("transfer_tokens")
@@ -927,19 +1206,8 @@ private final class DirectDBTransferService {
         return resp
     }
 
-    func confirmTransfer(token: String, vehicleId: String, buyerId: Int) async throws -> TransferConfirmationResponse {
-        let hash = sha256Hex(token)
-
-        let rows: [TransferTokenRow] = try await supabase
-            .from("transfer_tokens")
-            .select("*")
-            .eq("token_hash", value: hash)
-            .eq("vehicle_id", value: vehicleId)
-            .eq("is_used", value: false)
-            .execute()
-            .value
-
-        guard let row = rows.first else {
+    func confirmTransfer(token: String, vehicleId: String, buyerId: Int, buyerPhone: String? = nil) async throws -> TransferConfirmationResponse {
+        guard let row = try await resolveTokenRow(token: token, vehicleId: vehicleId) else {
             throw TransferError.edgeFunctionFailed("Token not found or already used")
         }
 
@@ -948,10 +1216,56 @@ private final class DirectDBTransferService {
             throw TransferError.edgeFunctionFailed("Token expired")
         }
 
+        // Verify buyer phone if the token was bound to a phone number
+        if let boundPhone = row.buyer_phone, !boundPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let buyerMobile = buyerPhone ?? SessionManager.shared.getUserMobile()
+            if buyerMobile == nil || buyerMobile != boundPhone {
+                throw TransferError.edgeFunctionFailed("Buyer phone does not match token recipient")
+            }
+        }
+
         _ = try await supabase
             .from("vehicle")
             .update(["owner_id": buyerId])
             .eq("id", value: vehicleId)
+            .execute()
+
+        _ = try await supabase
+            .from("transfer_tokens")
+            .update(["is_used": true])
+            .eq("id", value: row.id)
+            .execute()
+
+        let responseJSON = """
+        {"message":"Ownership transferred successfully"}
+        """.data(using: .utf8)!
+
+        let decoder = JSONDecoder()
+        let resp = try decoder.decode(TransferConfirmationResponse.self, from: responseJSON)
+        return resp
+    }
+
+    func confirmTransfer(token: String, buyerId: Int, buyerPhone: String? = nil) async throws -> TransferConfirmationResponse {
+        guard let row = try await resolveTokenRow(token: token, vehicleId: nil) else {
+            throw TransferError.edgeFunctionFailed("Token not found or already used")
+        }
+
+        let iso = ISO8601DateFormatter()
+        if let exp = iso.date(from: row.expires_at), exp < Date() {
+            throw TransferError.edgeFunctionFailed("Token expired")
+        }
+
+        if let boundPhone = row.buyer_phone, !boundPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let buyerMobile = buyerPhone ?? SessionManager.shared.getUserMobile()
+            if buyerMobile == nil || buyerMobile != boundPhone {
+                throw TransferError.edgeFunctionFailed("Buyer phone does not match token recipient")
+            }
+        }
+
+        _ = try await supabase
+            .from("vehicle")
+            .update(["owner_id": buyerId])
+            .eq("id", value: row.vehicle_id)
             .execute()
 
         _ = try await supabase
