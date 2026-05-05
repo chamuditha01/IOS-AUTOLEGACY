@@ -557,11 +557,31 @@ private final class TransferBackendService {
     private init() {}
 
     func generateTransferToken(sellerId: Int, vehicleId: String) async throws -> TransferTokenResponse {
-        try await invoke(function: "transfer-generate", body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId))
+        let candidates = ["transfer-generate", "transfer_generate", "generate-transfer", "transfer-generate-v1", "transfer"]
+        return try await invokeWithCandidates(functionCandidates: candidates, body: TransferTokenRequest(sellerId: sellerId, vehicleId: vehicleId))
     }
 
     func confirmTransfer(token: String, vehicleId: String, buyerId: Int) async throws -> TransferConfirmationResponse {
-        try await invoke(function: "transfer-confirm", body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId))
+        let candidates = ["transfer-confirm", "transfer_confirm", "confirm-transfer", "transfer-confirm-v1", "transfer"]
+        return try await invokeWithCandidates(functionCandidates: candidates, body: ConfirmTransferRequest(token: token, vehicleId: vehicleId, buyerId: buyerId))
+    }
+
+    private func invokeWithCandidates<Response: Decodable, Body: Encodable>(functionCandidates: [String], body: Body) async throws -> Response {
+        var lastError: Error? = nil
+        for fname in functionCandidates {
+            do {
+                return try await invoke(function: fname, body: body)
+            } catch {
+                // Keep trying other candidate names but remember the last error for reporting
+                lastError = error
+                print("⚠️ Edge function '\(fname)' failed: \(error)")
+            }
+        }
+
+        if let last = lastError {
+            throw last
+        }
+        throw TransferError.edgeFunctionFailed("No function candidates provided")
     }
 
     private func invoke<Response: Decodable, Body: Encodable>(function: String, body: Body) async throws -> Response {
@@ -580,7 +600,8 @@ private final class TransferBackendService {
 
         guard (200...299).contains(httpResponse.statusCode) else {
             let message = String(data: data, encoding: .utf8) ?? "Unexpected function failure"
-            throw TransferError.edgeFunctionFailed(message)
+            // If Supabase returns a JSON body explaining not_found, surface that clearly
+            throw TransferError.edgeFunctionFailed("HTTP \(httpResponse.statusCode): \(message)")
         }
 
         return try JSONDecoder().decode(Response.self, from: data)
